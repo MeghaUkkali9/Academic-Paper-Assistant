@@ -1,1 +1,1 @@
-# agentic-rag-with-langraph
+# Academic Paper Assistant
