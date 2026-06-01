@@ -6,8 +6,29 @@
 
 2. If you are trying to learn a concept, traditional keyword search only looks for exact words. Sometimes research papers use different wording for the same concept, so traditional search may miss relevant papers. To solve this, we use embeddings and vector search, which help find papers with similar meaning even when different words are used.
 
-3. Important information is often not available in the title or abstract. Many useful details are explained inside specific sections of the paper, such as methodology, experiments, and results. If you only read titles and abstracts, you may miss important insights.
+3. Important information is often not available in the title or abstract. Many useful details are explained inside specific sections of the paper, such as methodology, experiments and results. If you only read titles and abstracts, you may miss important insights.
 
 4. Researchers spend a lot of time searching the web, browsing different sources, and filtering through papers to find relevant information. This process can take hours.
 
 5. General AI tools like ChatGPT may not always have access to the latest research papers. Our platform continuously ingests newly published papers, making it easier to discover up-to-date research and information.
+
+## Tech Stack
+
+1. Docker
+2. Airflow
+3. Upstash
+4. Jina AI
+5. Postgre SQL
+6. FastAPI
+
+## Architechture
+ArXiv Papers -> ETL Pipeline -> store to PostgreSQl and Vector DB.
+Retrieval Pipeline :
+  Query -> Embedding Model -> search (BM25x and dense vector search) -> Reciprocal Rank Fusion(RRF) -> Reranker(BGE or Cohere or cross encoder)
+
+Generation Piplene:
+  Context from retrieval pipline -> context fit to LLM's context limit -> Prompt -> LLM -> response
+
+
+
+
