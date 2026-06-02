@@ -29,6 +29,8 @@ Retrieval Pipeline :
 Generation Piplene:
   Context from retrieval pipline -> context fit to LLM's context limit -> Prompt -> LLM -> response
 
+!(Academic-Paper-Assistant/images/image.png)
+
 
 
 
