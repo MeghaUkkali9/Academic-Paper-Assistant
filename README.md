@@ -14,23 +14,87 @@
 
 ## Tech Stack
 
-1. Docker
-2. Airflow
-3. Upstash
-4. Jina AI
-5. Postgre SQL
-6. FastAPI
+1. Docker - Runs all services in containers 
+2. Airflow - Scheduler - automatically fetches new papers from arXiv daily
+3. Upstash - Redis cache — fast key/value store 
+4. Jina AI - Embedding model — converts text to vectors
+5. Neon Postgres - Cloud database - stores paper metadata
+6. FastAPI - Backend API — handles user requests
+7. OpenSearch - Search engine — stores and searches papers(BM25 + vector) 
+8. OpenSearch Dashboards - Visual UI - browse what is in OpenSearch
 
 ## Architechture
-ArXiv Papers -> ETL Pipeline -> store to PostgreSQl and Vector DB.
-Retrieval Pipeline :
-  Query -> Embedding Model -> search (BM25x and dense vector search) -> Reciprocal Rank Fusion(RRF) -> Reranker(BGE or Cohere or cross encoder)
+ArXiv Papers
+↓
+ETL Pipeline (Airflow)
+↓
+PostgreSQL (metadata) + OpenSearch (vectors)
 
-Generation Piplene:
-  Context from retrieval pipline -> context fit to LLM's context limit -> Prompt -> LLM -> response
+### Retrieval Pipeline :
+  Query -> Embedding Model -> BM25 + Dense Vector Search -> Reciprocal Rank Fusion(RRF) -> Reranker(BGE or Cohere or cross encoder) -> Top K results
 
-![System Architecture](/images/retrival_pipeline.png)
+### Generation Piplene:
+  Top K results from retrieval pipline -> Context Window → Prompt → LLM → Response
 
+![System Architecture](/static/retrival_pipeline.png)
+
+## Getting Started
+1. pyproject.toml — defined all Python packages this project needs
+2. docker-compose.yml — defined all the infrastructure services (OpenSearch, Airflow, etc.) so Docker runs them automatically without installing anything manually
+
+### Prerequisites
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/) installed and running
+### Install All packages
+```
+uv sync
+```
+### Run the project
+
+```bash
+docker compose up -d
+```
+That's it. Docker handles everything — no manual installs needed.
+
+## What happens when you run `docker compose up -d`:
+Docker reads docker-compose.yml
+        ↓
+Builds our FastAPI app from Dockerfile
+        ↓
+Downloads OpenSearch + Dashboards images
+        ↓
+Starts all containers in the right order
+        ↓
+FastAPI app is live at http://localhost:8000
+OpenSearch at     http://localhost:9200
+Dashboards at     http://localhost:5601
+Airflow at        http://localhost:8080
+
+
+API Docs (Swagger) :  http://localhost:8000/docs 
+Health Check: http://localhost:8000/api/v1/health 
+
+## Useful Commands
+
+```bash
+# Start everything
+docker compose up -d
+
+# Check status of all containers
+docker compose ps
+
+# Watch logs
+docker compose logs -f api
+docker compose logs -f airflow
+
+# Stop everything (data preserved)
+docker compose down
+
+# Stop everything and wipe all data
+docker compose down -v
+
+# Rebuild after code changes
+docker compose up -d --build
+```
 
 
 
