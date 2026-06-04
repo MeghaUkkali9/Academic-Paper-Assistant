@@ -56,18 +56,15 @@ docker compose up -d
 That's it. Docker handles everything — no manual installs needed.
 
 ## What happens when you run `docker compose up -d`:
-Docker reads docker-compose.yml
-        ↓
-Builds our FastAPI app from Dockerfile
-        ↓
-Downloads OpenSearch + Dashboards images
-        ↓
-Starts all containers in the right order
-        ↓
-FastAPI app is live at http://localhost:8000
-OpenSearch at     http://localhost:9200
-Dashboards at     http://localhost:5601
-Airflow at        http://localhost:8080
+1. Docker reads docker-compose.yml
+2. Builds our FastAPI app from Dockerfile
+3. Downloads OpenSearch + Dashboards images
+4. Starts all containers in the right order
+   
+5. FastAPI app is live at http://localhost:8000
+6. OpenSearch at     http://localhost:9200
+7. Dashboards at     http://localhost:5601
+8. Airflow at        http://localhost:8080
 
 
 API Docs (Swagger) :  http://localhost:8000/docs 
