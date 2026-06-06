@@ -121,3 +121,26 @@ The scheduler is responsible for:
 - Picking up queued DAG runs
 - Scheduling tasks
 - Executing task instances
+
+
+### ETL Pipeline:
+Here are the 5 steps in order:
+① setup_environment
+Checks that everything is alive before starting — connects to the database, connects to OpenSearch (the search engine), and creates the search index.
+
+② fetch_daily_papers
+Goes to arXiv's website and downloads yesterday's new AI papers. This is where client.py does its work — building the URL, making the HTTP request, parsing the XML response into ArxivPaper objects.
+
+③ index_papers_hybrid
+Takes those papers and stores them in two places — a PostgreSQL database and OpenSearch. The "hybrid" part means it indexes them two ways: by keywords and by meaning (vector embeddings), so you can search them later both ways.
+
+④ generate_daily_report
+After everything is stored, produces a summary report of what was ingested — how many papers, any errors, stats. Useful for knowing the pipeline ran correctly.
+
+⑤ cleanup_temp_files
+Deletes any PDF files older than 30 days from the /tmp folder to keep disk space under control. The only step that runs a shell command rather than Python.
+
+The flow in one line:
+
+Are we ready? → Fetch papers → Store & index them → Report what happened → Clean up.
+
