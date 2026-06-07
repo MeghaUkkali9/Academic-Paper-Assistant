@@ -47,6 +47,7 @@ def _check_opensearch_connection(opensearch_client) -> None:
         else:
             raise Exception(f"Unexpected OpenSearch cluster status: {status}")
     except Exception as e:
+        logger.error(f"Error connecting to OpenSearch: {str(e)}")   
         raise Exception(f"Failed to connect to OpenSearch: {str(e)}")
 
 def _setup_search_indices(opensearch_client) -> None:
@@ -89,9 +90,7 @@ def pre_flight_checks() -> dict:
     # NOTE: get_cached_services() initializes ALL services even though
     # we only use database and opensearch_client here. This is intentional
     # — it warms the cache for the tasks that run after this one.
-    _, _, database, _, opensearch_client = (
-        get_cached_services()
-    )
+    _, _, database, _, opensearch_client = get_cached_services()
     
     _check_database_connection(database)
     _check_opensearch_connection(opensearch_client)
