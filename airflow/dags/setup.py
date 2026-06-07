@@ -69,7 +69,7 @@ def _setup_search_indices(opensearch_client) -> None:
     else:
         logger.info("RRF pipeline already exists, skipping creation.")  
         
-def pre_flight_checks() -> dict:
+def setup_environment() -> dict:
     """
     Main entry point — called by Airflow as the first DAG task.
 
@@ -100,5 +100,5 @@ def pre_flight_checks() -> dict:
     
     return {
         "status": "success", 
-        "message": "Pre-flight checks passed."
+        "message": "setup checks passed."
     } 

@@ -1,2 +1,2 @@
-async def index_papers_in_opensearch():
+async def index_papers():
     pass

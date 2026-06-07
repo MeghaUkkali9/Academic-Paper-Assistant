@@ -144,3 +144,7 @@ The flow in one line:
 
 Are we ready? → Fetch papers → Store & index them → Report what happened → Clean up.
 
+
+## To access Arxiv API:
+https://info.arxiv.org/help/api/tou.html
+

@@ -21,12 +21,11 @@ from urllib.parse import urlencode, quote
 from functools import cached_property
 from typing import List, Optional
 from src.config import ArxivSettings
-from src.exceptions import ArxivAPIException, ArxivAPITimeoutError, PDFDownloadException, PDFDownloadTimeoutError
+from src.exceptions import (ArxivAPIException, ArxivAPITimeoutError, PDFDownloadException, PDFDownloadTimeoutError)
 from src.schemas.arxiv.paper import ArxivPaper
 from src.services.arxiv.xml_parser import ArxivXmlParser
 
 logger = logging.getLogger(__name__)
-
 
 class ArxivClient:
     """
@@ -287,10 +286,10 @@ class ArxivClient:
 
         # _get() handles rate limiting, timeout, and HTTP errors
         xml_data = await self._get(url)
-        papers = self._parser.parse(xml_data)
+        parsed_arxiv_papers = self._parser.parse(xml_data)
 
-        logger.info(f"Fetched {len(papers)} papers")
-        return papers
+        logger.info(f"Fetched {len(parsed_arxiv_papers)} papers")
+        return parsed_arxiv_papers
 
     async def fetch_papers_with_query(
         self,

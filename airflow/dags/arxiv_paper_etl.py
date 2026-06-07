@@ -1,68 +1,77 @@
-import requests
-import psycopg2
+# dag.py
+#
+# PURPOSE: Define the arXiv paper ingestion pipeline.
+# Runs daily: pre-flight → fetch → index → report → cleanup
+#
+# SCHEDULE: scheduled to run every weekday at 4am UTC, but can be triggered manually as needed on airflow UI.
+# To run manually: airflow dags trigger arxiv_paper_etl
+
 import logging
+from datetime import datetime, timedelta
 
 from airflow import DAG
-from airflow.operators.python import PythonOperator, BashOperator
-from datetime import datetime, timedelta
-from .setup import pre_flight_checks
-from .fetch_process_store_papers import fetch_process_store_papers_in_db
+from airflow.operators.bash import BashOperator
+from airflow.operators.python import PythonOperator
+
+from .setup import setup_environment
+from .ingest_papers import ingest_papers
 from .index_papers import index_papers
+from .reporting import generate_daily_report
 
 logger = logging.getLogger(__name__)
 
-def pre_flight_check():
-    logger.info("Running pre-flight checks...")
-    return pre_flight_checks()
-
-def fetch_process_store_papers():
-    logger.info("Fetching papers from arXiv API...")
-    return fetch_process_store_papers_in_db()
-
-def index_papers_in_opensearch():
-    logger.info("Indexing papers in OpenSearch...")
-    return index_papers()
-
-def generate_report():
-    logger.info("Generating report...")
-    return "Report generated successfully"
-
+# --- DAG definition ---
 with DAG(
-    'arxiv_paper_etl',
+    dag_id="arxiv_paper_etl",
+    description="Daily pipeline: fetch arXiv papers -> store -> index -> report -> cleanup",
     default_args={
-        'owner': 'airflow',
-        'depends_on_past': False,
-        'start_date': datetime(2024, 1, 1),
-        'retries': 1,
-        'retry_delay': timedelta(minutes=5),
+        "owner": "arxiv-curator",
+        "depends_on_past": False,
+        "start_date": datetime(2025, 10, 10),
+        "retries": 3,
+        "retry_delay": timedelta(minutes=30),
+        "email_on_failure": False,
+        "email_on_retry": False,
     },
-    schedule_interval='@daily',
-    catchup=False
+    schedule="0 4 * * 1-5",
+    catchup=False,
+    max_active_runs=1,
+    tags=["arxiv", "papers", "ingestion", "hybrid-search"],
 ) as dag:
-    
-    pre_flight_task = PythonOperator(
-        task_id='pre_flight_checks',
-        python_callable=pre_flight_check
+
+    # Step 1: Verify database + OpenSearch are alive
+    setup_environment_task = PythonOperator(
+        task_id="setup_environment",
+        python_callable=setup_environment,
     )
-        
-    fetch_process_store_papers_task = PythonOperator(
-        task_id='fetch_process_store_papers',
-        python_callable=fetch_process_store_papers
+
+    # Step 2: Fetch papers from arXiv, process, and store in PostgreSQL
+    ingest_papers_task = PythonOperator(
+        task_id="ingest_papers",
+        python_callable=ingest_papers,
     )
-    
-    index_papers_in_opensearch_task = PythonOperator(
-        task_id='index_papers_in_opensearch',
-        python_callable=index_papers_in_opensearch
+
+    # Step 3: Index stored papers in OpenSearch for hybrid search
+    index_papers_task = PythonOperator(
+        task_id="index_papers",
+        python_callable=index_papers,
     )
-    
-    generate_report_task = PythonOperator(
-        task_id='generate_report',
-        python_callable=generate_report
+
+    # Step 4: Generate a summary report of what was ingested
+    generate_daily_report_task = PythonOperator(
+        task_id="generate_report",
+        python_callable=generate_daily_report,
     )
-    
+
+    # Step 5: Clean up temp files older than 30 days
     cleanup_task = BashOperator(
-        task_id='cleanup',
-        bash_command='echo "Cleaning up resources..."'
+        task_id="cleanup",
+        bash_command="""
+            echo "Cleaning up temporary files..."
+            find /tmp -name "*.pdf" -type f -mtime +30 -delete 2>/dev/null || true
+            echo "Cleanup completed"
+        """,
     )
-    
-    pre_flight_task >> fetch_process_store_papers_task >> index_papers_in_opensearch_task >> generate_report_task
+
+    # Pipeline order — each step runs only if the previous one succeeded
+    setup_environment_task >> ingest_papers_task >> index_papers_task >> generate_daily_report_task >> cleanup_task
