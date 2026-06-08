@@ -1,23 +1,13 @@
-class ArxivPaper:
-    def __init__(
-        self,
-        arxiv_id: str,
-        title: str,
-        authors: list[str],
-        abstract: str,
-        pdf_url: str,
-    ):
-        self.arxiv_id = arxiv_id
-        self.title = title
-        self.authors = authors
-        self.abstract = abstract
-        self.pdf_url = pdf_url
+from pydantic import BaseModel, Field, HttpUrl
+from datetime import datetime
+from typing import List
 
-    def __repr__(self):
-        return (
-            f"ArxivPaper("
-            f"arxiv_id={self.arxiv_id}, "
-            f"title={self.title}, "
-            f"authors={self.authors}, "
-            f"pdf_url={self.pdf_url})"
-        )
+
+class ArxivPaper(BaseModel):
+    arxiv_id: str = Field(..., description="arXiv paper ID")
+    title: str
+    authors: List[str]
+    abstract: str
+    categories: List[str]
+    published_date: datetime
+    pdf_url: HttpUrl
