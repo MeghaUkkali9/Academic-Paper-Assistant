@@ -7,7 +7,7 @@ sys.path.insert(0, "/opt/airflow")
 
 from src.database.factory import make_database
 from src.services.arxiv.factory import make_arxiv_client
-from src.services.metadata.metadata import make_metadata_fetcher
+from src.services.paper_metadata_pipeline.factory import make_metadata_fetcher
 from src.services.opensearch.factory import make_opensearch_client
 from src.services.pdf_parser.factory import make_pdf_parser_service
 
