@@ -96,7 +96,11 @@ class MetadataFetcher:
         try:
             # Step 1: Fetch paper metadata from arXiv
             papers = await self.arxiv_client.fetch_papers(
-                max_results=max_results, from_date=from_date, to_date=to_date, sort_by="submittedDate", sort_order="descending"
+                max_results=max_results,
+                from_date=from_date,
+                to_date=to_date,
+                sort_by="submittedDate",
+                sort_order="descending"
             )
 
             results["papers_fetched"] = len(papers)
@@ -306,7 +310,8 @@ class MetadataFetcher:
             pdf_content = parsed_paper.pdf_content
 
             # Serialize sections
-            sections = [{"title": section.title, "content": section.content} for section in pdf_content.sections]
+            sections = [{"title": section.title,
+                         "content": section.content} for section in pdf_content.sections]
 
             # Serialize references
             references = list(pdf_content.references)  #
