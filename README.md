@@ -98,13 +98,17 @@ docker compose up -d --build
 Connect to the PostgreSQL container:
 
 ```bash
+
 docker exec -it rag-postgres psql -U rag_user -d rag_db
+s
 ```
 
 Verify the current database and user:
 
 ```sql
+
 SELECT current_database(), current_user;
+
 ```
 
 ### Start Airflow Scheduler Manually
@@ -114,7 +118,9 @@ If DAG runs remain in the **Queued** state and do not start executing, verify th
 To start the scheduler manually inside the Airflow container:
 
 ```bash
+
 docker exec -it rag-airflow airflow scheduler
+
 ```
 
 The scheduler is responsible for:

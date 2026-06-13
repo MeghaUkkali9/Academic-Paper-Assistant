@@ -2,12 +2,6 @@ import logging
 from sqlalchemy import text
 from .common import get_cached_services
 
-# setup.py
-#
-# PURPOSE: Pre-flight checks before the DAG runs.
-# Verifies database + OpenSearch are alive, and creates
-# the search index + RRF pipeline if they don't exist yet.
-
 logger = logging.getLogger(__name__)
 
 def _check_database_connection(database) -> None:
@@ -16,9 +10,6 @@ def _check_database_connection(database) -> None:
 
     Runs the simplest possible query — if it doesn't crash,
     the database is alive.
-
-    Raises:
-        Exception: if the database connection fails
     """
     with database.get_session() as session:
         session.execute(text("SELECT 1"))
@@ -32,9 +23,6 @@ def _check_opensearch_connection(opensearch_client) -> None:
     Green = fully healthy
     Yellow = healthy but some replicas missing (still usable)
     Red = primary shards missing — data loss risk, do NOT proceed
-
-    Raises:
-        Exception: if OpenSearch is unreachable or status is red
     """
     try:
         health = opensearch_client.cluster.health()
@@ -77,19 +65,10 @@ def setup_environment() -> dict:
         1. Database reachable?
         2. OpenSearch reachable and healthy?
         3. Search index + pipeline exist (create if not)?
-
-    Returns:
-        dict with status and message on success
-
-    Raises:
-        Exception: if any check fails (stops the entire DAG)
     """
     
     logger.info("Starting pre-flight checks...")
     
-    # NOTE: get_cached_services() initializes ALL services even though
-    # we only use database and opensearch_client here. This is intentional
-    # — it warms the cache for the tasks that run after this one.
     _, _, database, _, opensearch_client = get_cached_services()
     
     _check_database_connection(database)

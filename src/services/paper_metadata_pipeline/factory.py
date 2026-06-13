@@ -11,19 +11,7 @@ def make_metadata_fetcher(
     pdf_cache_dir: Optional[Path] = None,
     settings: Optional[Settings] = None,
 ) -> MetadataFetcher:
-    """Create MetadataFetcher instance with configuration settings.
-
-    :param arxiv_client: Client for arXiv API operations
-    :param pdf_parser: Service for parsing PDF documents
-    :param pdf_cache_dir: Directory for caching downloaded PDFs
-    :param settings: Application settings instance (uses default if None)
-    :type arxiv_client: ArxivClient
-    :type pdf_parser: PDFParserService
-    :type pdf_cache_dir: Optional[Path]
-    :type settings: Optional[Settings]
-    :returns: Configured MetadataFetcher instance
-    :rtype: MetadataFetcher
-    """
+    """Create MetadataFetcher instance with configuration settings."""
     from src.config import get_settings
 
     if settings is None:
