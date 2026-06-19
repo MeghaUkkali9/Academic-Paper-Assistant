@@ -1,5 +1,6 @@
 [project]
 name = "academic-paper-assistant"
+author = "Megha Ukkali"
 version = "0.1.0"
 description = "Academic Paper Assistant - AI Research Assistant"
 requires-python = ">=3.12"

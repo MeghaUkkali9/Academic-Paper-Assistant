@@ -9,12 +9,7 @@ async def run_paper_ingestion_pipeline(
     target_date: str,
     process_pdfs: bool = True,
 ) -> dict:
-    """Async wrapper for the paper ingestion pipeline.
-
-    :param target_date: Date to fetch papers for (YYYYMMDD format)
-    :param process_pdfs: Whether to download and process PDFs
-    :returns: Dictionary with ingestion statistics
-    """
+    """Async wrapper for the paper ingestion pipeline"""
     arxiv_client, _, database, metadata_fetcher, _ = get_cached_services()
 
     max_results = arxiv_client.max_results
@@ -38,8 +33,6 @@ def ingest_papers(**context):
     2. Fetches papers from arXiv API
     3. Downloads and processes PDFs using Docling
     4. Stores metadata and parsed content in PostgreSQL
-
-    Note: OpenSearch indexing is handled by a separate dedicated task
     """
     logger.info("Starting daily paper fetching task")
 
