@@ -5,7 +5,7 @@ from typing import NamedTuple
 
 sys.path.insert(0, "/opt/airflow")
 
-from src.database.factory import make_database
+from src.database.factory import create_database
 from src.services.arxiv.factory import make_arxiv_client
 from src.services.paper_metadata_pipeline.factory import make_metadata_fetcher
 from src.services.opensearch.factory import make_opensearch_client
@@ -69,7 +69,7 @@ def get_cached_services() -> Services:
         raise Exception("Failed to initialize PDF parser") from e
 
     try:
-        database = make_database()
+        database = create_database()
         logger.info("Database initialized")
     except Exception as e:
         raise Exception("Failed to initialize database") from e

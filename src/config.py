@@ -28,9 +28,9 @@ class ArxivSettings(BaseConfigSettings):
 
     base_url: str = "https://export.arxiv.org/api/query"
     pdf_cache_dir: str = "./data/arxiv_pdfs"
-    rate_limit_delay: float = 3.0
+    rate_limit_delay: float = 3.1
     timeout_seconds: int = 60
-    max_results: int = 15
+    max_results: int = 3
     search_category: str = "cs.AI"
     download_max_retries: int = 3
     download_retry_delay_base: float = 5.0
@@ -51,13 +51,11 @@ class PDFParserSettings(BaseConfigSettings):
         frozen=True,
         case_sensitive=False,
     )
-
-    max_pages: int = 30
+    max_pages: int = 20
     max_file_size_mb: int = 20
     do_ocr: bool = False
     do_table_structure: bool = True
-
-
+    
 class ChunkingSettings(BaseConfigSettings):
     model_config = SettingsConfigDict(
         env_file=[".env", str(ENV_FILE_PATH)],
@@ -93,8 +91,6 @@ class OpenSearchSettings(BaseConfigSettings):
     # Hybrid search settings
     rrf_pipeline_name: str = "hybrid-rrf-pipeline"
     hybrid_search_size_multiplier: int = 2  # Get k*multiplier for better recall
-
-
     
 class Settings(BaseConfigSettings):
     app_version: str = "0.1.0"
@@ -102,7 +98,7 @@ class Settings(BaseConfigSettings):
     environment: Literal["development", "staging", "production"] = "development"
     service_name: str = "rag-api"
 
-    postgres_database_url: str = "postgresql://rag_user:rag_password@localhost:5432/rag_db"
+    postgres_database_url: str = "postgresql+psycopg2://neondb_owner:npg_u86lWTmfVHic@ep-billowing-base-apeh812e-pooler.c-7.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
     postgres_echo_sql: bool = False
     postgres_pool_size: int = 5
     postgres_max_overflow: int = 0
