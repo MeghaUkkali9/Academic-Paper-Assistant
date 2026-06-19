@@ -37,30 +37,31 @@ class PostgreSQLDatabase:
             
             with self.engine.connect() as connection:
                 connection.execute(text("SELECT 1"))
-                logger.info("Database connection test")
+                logger.info("Database connection test successful")
                 
             inspector = inspect(self.engine)
             existing_tables = inspector.get_table_names()
-            logger.info("Existing tables in database", existing_tables)
-                
-            Base.metadata.create_all(
-                bind=self.engine
-            )
-            
-            check_new_tables = inspector.get_table_names()
-            new_tables = set(check_new_tables)-set(existing_tables)
-            
+
+            logger.info(f"Existing tables: {existing_tables}")
+
+            Base.metadata.create_all(bind=self.engine)
+
+            new_inspector = inspect(self.engine)
+            current_tables = new_inspector.get_table_names()
+
+            new_tables = set(current_tables) - set(existing_tables)
+
             if new_tables:
-                logger.info(f"New tables are {','.join(new_tables)}")
+                logger.info(f"New tables created: {', '.join(new_tables)}")
             else:
-                logger.info(f"No new tables are created in database.")
+                logger.info("No new tables created")
             
             logger.info(f"Connected database: {self.engine.url.database}")
-            logger.info(f"Total tables: {', '.join(check_new_tables) if check_new_tables else 'None'}")
+            logger.info(f"Total tables: {', '.join(current_tables) if current_tables else 'None'}")
             logger.info("Database connected succesfully")
             
         except Exception as e:
-            logger.error(f"Failed to connect to the Postgre SQL database", e)
+            logger.exception("Failed to connect to PostgreSQL database")
             raise
 
     def dispose(self) -> None:
@@ -85,9 +86,9 @@ class PostgreSQLDatabase:
 
         except Exception as e:
             session.rollback()
-            logger.error("Error occurred while getting session", e)
+            logger.exception("Error occurred while getting session")
             raise
 
         finally:
-            logger.info("Closing session", e)
+            logger.info("Closing session")
             session.close()
