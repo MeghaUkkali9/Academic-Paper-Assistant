@@ -4,6 +4,7 @@ from src.config import Settings
 from src.services.arxiv.client import ArxivClient
 from src.services.pdf_parser.parser import PDFParserService
 from .metadata_fetcher import MetadataFetcher
+from src.config import get_settings
 
 def make_metadata_fetcher(
     arxiv_client: ArxivClient,
@@ -12,8 +13,7 @@ def make_metadata_fetcher(
     settings: Optional[Settings] = None,
 ) -> MetadataFetcher:
     """Create MetadataFetcher instance with configuration settings."""
-    from src.config import get_settings
-
+    
     if settings is None:
         settings = get_settings()
 
