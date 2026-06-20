@@ -30,10 +30,7 @@ class PaperTable(BaseModel):
 class PdfContent(BaseModel):
     """PDF-specific content extracted by parsers like Docling."""
     sections: List[PaperSection] 
-    figures: List[PaperFigure] 
-    tables: List[PaperTable] 
     raw_text: str
-    references: List[str] 
     parser_used: ParserType 
     metadata: Dict[str, Any] 
 
