@@ -1,7 +1,7 @@
 from pathlib import Path
-from typing import List, Literal, Optional
+from typing import Literal
 
-from pydantic import Field, SecretStr, field_validator
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -28,16 +28,23 @@ class ArxivSettings(BaseConfigSettings):
 
     base_url: str = "https://export.arxiv.org/api/query"
     pdf_cache_dir: str = "./data/arxiv_pdfs"
-    sort_by: str = "submittedDate"
-    sort_order="descending"
-    rate_limit_delay: float = 3.1
+    sort_by: Literal[
+        "relevance",
+        "lastUpdatedDate",
+        "submittedDate"
+    ] = "submittedDate"
+    sort_order: Literal[
+        "ascending",
+        "descending"
+    ] = "descending"
+    rate_limit_delay: float = 3.0
     timeout_seconds: int = 60
-    max_papers: int = 3
+    max_papers: int = 5
     search_category: str = "cs.AI"
     download_max_retries: int = 3
     download_retry_delay_base: float = 5.0
     max_concurrent_downloads: int = 5
-    max_concurrent_parsing: int = 1
+    max_concurrent_parsing: int = 2
 
     namespaces: dict = {
         "atom": "http://www.w3.org/2005/Atom",

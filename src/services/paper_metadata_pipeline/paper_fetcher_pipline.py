@@ -2,7 +2,6 @@ from typing import Optional, Dict, Any, List
 from sqlalchemy.orm import Session
 from src.services.arxiv.client import ArxivClient
 from src.config import Settings, get_settings
-from src.schemas.arxiv.researchpaper import ArxivResearchPaper
 
 class ResearchPaperManager:
     def __init__(
