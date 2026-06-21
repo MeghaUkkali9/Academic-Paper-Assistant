@@ -1,10 +1,10 @@
-from pydantic import BaseModel, Field, HttpUrl
+from pydantic import BaseModel, HttpUrl
 from datetime import datetime
 from typing import List, Optional, Dict, Any
 
 
 class ArxivResearchPaper(BaseModel):
-    arxiv_id: str = Field(..., description="arXiv paper ID")
+    arxiv_id: str 
     title: str
     authors: List[str]
     summary: str
@@ -24,7 +24,6 @@ class PaperBase(BaseModel):
 class PaperCreate(PaperBase):
     raw_text: Optional[str] 
     sections: Optional[List[Dict[str, Any]]] 
-    references: Optional[List[Dict[str, Any]]] 
     
     parser_used: Optional[str]
     parser_metadata: Optional[Dict[str, Any]]

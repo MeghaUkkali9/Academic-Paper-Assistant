@@ -7,7 +7,7 @@ sys.path.insert(0, "/opt/airflow")
 
 from src.database.factory import create_database
 from src.services.arxiv.factory import make_arxiv_client
-from src.services.paper_metadata_pipeline.factory import make_metadata_fetcher
+from src.services.paper_metadata_pipeline.factory import create_paper_fetcher
 from src.services.opensearch.factory import make_opensearch_client
 from src.services.pdf_parser.factory import make_pdf_parser_service
 
@@ -27,7 +27,7 @@ class Services(NamedTuple):
     arxiv_client: object
     pdf_parser: object
     database: object
-    metadata_fetcher: object
+    paper_fetcher: object
     opensearch_client: object
 
 
@@ -56,6 +56,7 @@ def get_cached_services() -> Services:
     """
     logger.info("Initializing services for this process")
 
+    
     try:
         arxiv_client = make_arxiv_client()
         logger.info("arXiv client initialized")
@@ -69,6 +70,12 @@ def get_cached_services() -> Services:
         raise Exception("Failed to initialize PDF parser") from e
 
     try:
+        paper_fetcher = create_paper_fetcher(arxiv_client, pdf_parser)
+        logger.info("Metadata fetcher initialized")
+    except Exception as e:
+        raise Exception("Failed to initialize metadata fetcher") from e
+    
+    try:
         database = create_database()
         logger.info("Database initialized")
     except Exception as e:
@@ -80,18 +87,12 @@ def get_cached_services() -> Services:
     except Exception as e:
         raise Exception("Failed to initialize OpenSearch client") from e
 
-    try:
-        metadata_fetcher = make_metadata_fetcher(arxiv_client, pdf_parser)
-        logger.info("Metadata fetcher initialized")
-    except Exception as e:
-        raise Exception("Failed to initialize metadata fetcher") from e
-
     logger.info("All services initialized and cached")
 
     return Services(
         arxiv_client=arxiv_client,
         pdf_parser=pdf_parser,
         database=database,
-        metadata_fetcher=metadata_fetcher,
+        paper_fetcher=paper_fetcher,
         opensearch_client=opensearch_client,
     )

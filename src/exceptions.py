@@ -17,20 +17,20 @@ class ArxivParseError(ArxivAPIException):
 class MetadataFetchingException(Exception):
     """Base exception for metadata fetching pipeline errors."""
 
-
 class PipelineException(MetadataFetchingException):
     """Exception raised during pipeline execution."""
 
+class DownloadParsingException(Exception):
+    """Exception occurred during download parsing pipline"""
 
 class RepositoryException(Exception):
     """Base exception for repository-related errors."""
 
-
-class PaperNotFound(RepositoryException):
+class PaperNotFoundException(RepositoryException):
     """Exception raised when paper data is not found."""
 
 
-class PaperNotSaved(RepositoryException):
+class PaperNotSavedException(RepositoryException):
     """Exception raised when paper data is not saved."""
 
 
