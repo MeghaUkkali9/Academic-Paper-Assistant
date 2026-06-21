@@ -60,7 +60,7 @@ class PDFParserSettings(BaseConfigSettings):
         frozen=True,
         case_sensitive=False,
     )
-    max_pages: int = 20
+    max_pages: int = 30
     max_file_size_mb: int = 20
     do_ocr: bool = False
     do_table_structure: bool = True

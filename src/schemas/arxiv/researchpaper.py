@@ -9,8 +9,8 @@ class ArxivResearchPaper(BaseModel):
     authors: List[str]
     summary: str
     categories: List[str]
-    published_date: datetime
-    pdf_url: HttpUrl
+    published_date: str
+    pdf_url: str
     
 class PaperBase(BaseModel):
     arxiv_id: str 
@@ -18,7 +18,7 @@ class PaperBase(BaseModel):
     authors: List[str] 
     summary: str 
     categories: List[str] 
-    published_date: datetime 
+    published_on: datetime 
     pdf_url: str 
 
 class PaperCreate(PaperBase):

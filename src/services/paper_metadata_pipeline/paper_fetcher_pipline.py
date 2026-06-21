@@ -6,6 +6,7 @@ from datetime import datetime
 from sqlalchemy.orm import Session
 
 from src.config import Settings, get_settings
+from dateutil import parser
 from src.exceptions import DownloadParsingException
 from src.schemas.arxiv.researchpaper import ArxivResearchPaper
 from src.schemas.pdf_parser.models import (
@@ -121,9 +122,8 @@ class ResearchPaperManager:
                 categories=research_paper.categories,
                 summary=research_paper.summary,
                 published_date=research_paper.published_date,
-                pdf_url=str(
-                    research_paper.pdf_url
-                )
+                pdf_url=research_paper.pdf_url
+            
             )
 
             return ParsedPaper(
@@ -170,15 +170,17 @@ class ResearchPaperManager:
 
         metadata = parsed_paper.arxiv_metadata
         pdf_content = parsed_paper.pdf_content
-
+        published_on = (
+                    parser.parse(metadata.published_date) if isinstance(metadata.published_date, str) else metadata.published_date
+                )
         return PaperCreate(
             arxiv_id=metadata.arxiv_id,
             title=metadata.title,
             authors=metadata.authors,
             summary=metadata.summary,
             categories=metadata.categories,
-            published_on=metadata.published_at,
-            pdf_url=str(metadata.pdf_url),
+            published_on=published_on,
+            pdf_url=metadata.pdf_url,
             raw_text=pdf_content.raw_text,
             sections=[
                 {

@@ -1,7 +1,7 @@
 from typing import Optional
 from sqlalchemy import select
 from sqlalchemy.orm import Session
-from src.schemas.arxivpaper import ResearchPaper
+from src.database.arxivpaper import ResearchPaper
 from src.schemas.arxiv.researchpaper import PaperCreate
 
 class PaperRepository:
