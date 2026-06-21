@@ -2,7 +2,7 @@ from typing import Optional
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 from src.database.arxivpaper import ResearchPaper
-from src.schemas.arxiv.researchpaper import PaperCreate
+from src.database.model.paper import PaperCreate
 
 class PaperRepository:
     def __init__(self, session: Session):

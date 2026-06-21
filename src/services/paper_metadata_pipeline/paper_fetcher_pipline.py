@@ -15,7 +15,7 @@ from src.schemas.pdf_parser.models import (
 )
 from src.services.arxiv.client import ArxivClient
 from src.services.pdf_parser.parser import PDFParserService
-from src.schemas.arxiv.researchpaper import PaperCreate
+from src.database.model.paper import PaperCreate
 from src.repositories.researchpaper import PaperRepository
 from src.exceptions import PaperNotSavedException
 
