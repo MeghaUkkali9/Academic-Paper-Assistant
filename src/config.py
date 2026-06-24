@@ -101,6 +101,24 @@ class OpenSearchSettings(BaseConfigSettings):
     rrf_pipeline_name: str = "hybrid-rrf-pipeline"
     hybrid_search_size_multiplier: int = 2  # Get k*multiplier for better recall
     
+class EmbeddingSettings(BaseConfigSettings):
+    model_config = SettingsConfigDict(
+        env_file=[".env", str(ENV_FILE_PATH)],
+        env_prefix="JINA__",
+        extra="ignore",
+        frozen=True,
+        case_sensitive=False,
+    )
+    jina_api_key: str 
+    base_url: str = "https://api.jina.ai/v1"
+    content_type: str = "application/json"
+    timeout_seconds: int = 30
+    embedding_model: str = "jina-embeddings-v3"
+    embedding_passage_retrival_task: str = "retrieval.passage"
+    embedding_query_retrival_task: str = "retrieval.query"
+    dimensions: int = 1024
+    embedding_batch_size:int = 100
+    
 class Settings(BaseConfigSettings):
     app_version: str = "0.1.0"
     debug: bool = True
@@ -119,14 +137,12 @@ class Settings(BaseConfigSettings):
     # LLM provider: "openai" or "bedrock"
     provider: str = "openai"
 
-    # Jina AI embeddings configuration
-    jina_api_key: str = ""
-
+    embedding: EmbeddingSettings = Field(default_factory = EmbeddingSettings)
     arxiv: ArxivSettings = Field(default_factory=ArxivSettings)
     pdf_parser: PDFParserSettings = Field(default_factory=PDFParserSettings)
     chunking: ChunkingSettings = Field(default_factory=ChunkingSettings)
     opensearch: OpenSearchSettings = Field(default_factory=OpenSearchSettings)
-    
+  
     @field_validator("postgres_database_url")
     @classmethod
     def validate_database_url(cls, v: str) -> str:
