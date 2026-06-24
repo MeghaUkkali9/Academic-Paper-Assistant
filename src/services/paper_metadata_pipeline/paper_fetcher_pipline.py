@@ -2,11 +2,10 @@ import asyncio
 import logging
 from typing import Optional
 from datetime import datetime
-
 from sqlalchemy.orm import Session
+from dateutil import parser
 
 from src.config import Settings, get_settings
-from dateutil import parser
 from src.exceptions import DownloadParsingException
 from src.schemas.arxiv.researchpaper import ArxivResearchPaper
 from src.schemas.pdf_parser.models import (
@@ -20,7 +19,6 @@ from src.repositories.researchpaper import PaperRepository
 from src.exceptions import PaperNotSavedException
 
 logger = logging.getLogger(__name__)
-
 
 class ResearchPaperManager:
     """
@@ -62,12 +60,12 @@ class ResearchPaperManager:
                 to_date=to_date,
             )
         
-        parsed_papers = await self.download_and_parse_papers(
+        parsed_papers = await self._download_and_parse_papers(
                 research_papers
             )
         
 
-        papers_stored = await self.store_papers_to_db(
+        papers_stored = await self._store_papers_to_db(
             parsed_papers,
             db_session,
         )
@@ -78,7 +76,7 @@ class ResearchPaperManager:
             "papers_stored": papers_stored,
         }
 
-    async def download_and_parse_papers(self, research_papers: list[ArxivResearchPaper]) -> dict[str, ParsedPaper]:
+    async def _download_and_parse_papers(self, research_papers: list[ArxivResearchPaper]) -> dict[str, ParsedPaper]:
         tasks = [
             self._download_and_parse_task(
                 research_paper
@@ -135,7 +133,7 @@ class ResearchPaperManager:
             logger.exception(f"Failed processing paper {research_paper.arxiv_id}")
             raise DownloadParsingException(f"Failed processing paper {research_paper.arxiv_id}") from e
 
-    async def store_papers_to_db(
+    async def _store_papers_to_db(
         self,
         parsed_papers: dict[str, ParsedPaper],
         db_session: Session,
