@@ -110,7 +110,7 @@ class EmbeddingSettings(BaseConfigSettings):
         case_sensitive=False,
     )
     jina_api_key: str 
-    base_url: str = "https://api.jina.ai/v1"
+    base_url: str = "https://api.jina.ai/v1/embeddings"
     content_type: str = "application/json"
     timeout_seconds: int = 30
     embedding_model: str = "jina-embeddings-v3"
