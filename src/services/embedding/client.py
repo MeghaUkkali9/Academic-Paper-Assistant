@@ -30,7 +30,7 @@ class EmbeddingClient:
             )
             async with httpx.AsyncClient(timeout = self._settings.timeout_seconds) as client:
                 response = await client.post(
-                    f"{self._settings.base_url}/embeddings", 
+                    f"{self._settings.base_url}", 
                     headers = headers,
                     json = request_data.model_dump()
                 )
@@ -71,10 +71,16 @@ class EmbeddingClient:
                 texts=batch, 
                 task=self._settings.embedding_passage_retrival_task
             )
+            if len(result.data) != len(batch):
+                raise ValueError(
+                    f"Batch starting at {i}: expected {len(batch)} embeddings, got {len(result.data)}"
+                )
+            # Sort by API-provided index to guarantee response order matches input order
+            sorted_data = sorted(result.data, key=lambda x: x.index)
             
             batch_embeddings = [
                 item.embedding
-                for item in result.data
+                for item in sorted_data
             ]
             
             embeddings.extend(batch_embeddings)
