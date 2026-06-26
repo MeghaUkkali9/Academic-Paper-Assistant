@@ -3,8 +3,13 @@ from src.services.embedding.client import EmbeddingClient
 from src.services.opensearch.client import OpenSearchClient
 
 class IndexingService:
-    def __init__(self, embed_client: EmbeddingClient, openSearch_client: OpenSearchClient):
-        self.document_chunker = DocumentChunker()
+    def __init__(
+        self, 
+        document_chunker: DocumentChunker,
+        embed_client: EmbeddingClient, 
+        openSearch_client: OpenSearchClient
+    ):
+        self.document_chunker = document_chunker
         self.embedding_client = embed_client
         self.openSearch_client = openSearch_client
     
