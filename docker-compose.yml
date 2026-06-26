@@ -1,5 +1,4 @@
 services:
-  # API service
   api:
     build: .
     container_name: rag-api
@@ -21,28 +20,32 @@ services:
     env_file:
       - .env
     environment:
-      # Container-specific overrides
       - OPENSEARCH_HOST=http://opensearch:9200
       - OPENSEARCH__HOST=http://opensearch:9200
       - POSTGRES_DATABASE_URL=postgresql+psycopg2://neondb_owner:npg_u86lWTmfVHic@ep-billowing-base-apeh812e-pooler.c-7.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require
       - REDIS__HOST=redis
     networks:
       - rag-network
-
-  redis:
-    image: redis:7-alpine
-    container_name: rag-redis
+  
+  postgres:
+    image: postgres:16-alpine
+    container_name: rag-postgres
+    environment:
+      - POSTGRES_DB=rag_db
+      - POSTGRES_USER=rag_user
+      - POSTGRES_PASSWORD=rag_password
+      - POSTGRES_HOST_AUTH_METHOD=password
+      - PGDATA=/var/lib/postgresql/data/pgdata
     ports:
-      - "6379:6379"
+      - "5432:5432"
     volumes:
-      - redis_data:/data
-    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+      - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 3s
-      retries: 3
-      start_period: 10s
+      test: ["CMD-SHELL", "pg_isready -U rag_user -d rag_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
     restart: unless-stopped
     networks:
       - rag-network
@@ -98,17 +101,14 @@ services:
       context: ./airflow
       dockerfile: Dockerfile
     container_name: rag-airflow
-    # user: "50000:0"  # Uncomment for WSL/Ubuntu, comment out for Mac
     depends_on:
       postgres:
         condition: service_healthy
     env_file:
       - .env
     environment:
-      # Airflow-specific environment setup
       - AIRFLOW_HOME=/opt/airflow
       - PYTHONPATH=/opt/airflow/src
-      # Container hostnames for Airflow
       - POSTGRES_DATABASE_URL=postgresql+psycopg2://neondb_owner:npg_u86lWTmfVHic@ep-billowing-base-apeh812e-pooler.c-7.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require
       - OPENSEARCH_HOST=http://opensearch:9200
       - OPENSEARCH__HOST=http://opensearch:9200
@@ -120,7 +120,6 @@ services:
       - ./src:/opt/airflow/src
     ports:
       - "8080:8080"
-    # Command handled by entrypoint.sh
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
       interval: 30s
@@ -130,25 +129,20 @@ services:
     networks:
       - rag-network
 
-  postgres:
-    image: postgres:16-alpine
-    container_name: rag-postgres
-    environment:
-      - POSTGRES_DB=rag_db
-      - POSTGRES_USER=rag_user
-      - POSTGRES_PASSWORD=rag_password
-      - POSTGRES_HOST_AUTH_METHOD=password
-      - PGDATA=/var/lib/postgresql/data/pgdata
+  redis:
+    image: redis:7-alpine
+    container_name: rag-redis
     ports:
-      - "5432:5432"
+      - "6379:6379"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - redis_data:/data
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U rag_user -d rag_db"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-      start_period: 30s
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
     restart: unless-stopped
     networks:
       - rag-network

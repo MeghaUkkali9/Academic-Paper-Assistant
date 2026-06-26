@@ -11,7 +11,6 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     --mount=type=bind,source=pyproject.toml,target=/app/pyproject.toml \
     uv sync --frozen --no-dev
 
-# Copy source code
 COPY src /app/src
 
 FROM python:3.12.8-slim AS final
@@ -26,8 +25,6 @@ WORKDIR /app
 
 COPY --from=base /app /app
 
-# Add virtual environment to PATH
 ENV PATH="/app/.venv/bin:$PATH"
 
-# Run the application
 CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "4"] 
