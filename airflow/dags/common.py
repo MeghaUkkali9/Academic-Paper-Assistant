@@ -8,21 +8,14 @@ sys.path.insert(0, "/opt/airflow")
 from src.database.factory import create_database
 from src.services.arxiv.factory import make_arxiv_client
 from src.services.paper_metadata_pipeline.factory import create_paper_fetcher
-from src.services.opensearch.factory import make_opensearch_client
+from src.services.opensearch.factory import get_opensearch_client
 from src.services.pdf_parser.factory import make_pdf_parser_service
 
 logger = logging.getLogger(__name__)
 
-# NamedTuple gives both dot access AND tuple unpacking,
-# so existing code that unpacks it still works.
 class Services(NamedTuple):
     """
     Container for all initialized service instances.
-
-    Using NamedTuple means:
-    - You can access by name:  services.database
-    - You can still unpack:    arxiv, pdf, db, meta, os = services
-    - The order is documented here in one place
     """
     arxiv_client: object
     pdf_parser: object
@@ -46,13 +39,6 @@ def get_cached_services() -> Services:
     If multiple functions inside the same task call
     get_cached_services(), they all get the same objects
     back without re-initializing anything.
-
-    Returns:
-        Services namedtuple containing all initialized services
-    
-    Raises:
-        Exception: if any individual service fails to initialize,
-                   with a clear message about which one failed
     """
     logger.info("Initializing services for this process")
 
@@ -82,7 +68,7 @@ def get_cached_services() -> Services:
         raise Exception("Failed to initialize database") from e
 
     try:
-        opensearch_client = make_opensearch_client()
+        opensearch_client = get_opensearch_client()
         logger.info("OpenSearch client initialized")
     except Exception as e:
         raise Exception("Failed to initialize OpenSearch client") from e

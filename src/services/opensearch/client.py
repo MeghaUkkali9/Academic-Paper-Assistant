@@ -17,7 +17,7 @@ class OpenSearchClient:
                 ssl_show_warn=False,
             )
         
-    async def delete_chunks(self, arxiv_id: str):
+    def delete_chunks(self, arxiv_id: str):
         try:
             response = self.client.delete_by_query(
                 index=self.index_name, 
@@ -34,7 +34,7 @@ class OpenSearchClient:
         except Exception as e:
             logger.error(f"Error deleting chunks: {e}")
     
-    async def bulk_chunks_insert(self, chunks: List[Dict[str, Any]]):
+    def bulk_index_insert(self, chunks: List[Dict[str, Any]]):
         try:
             actions = []
             for chunk in chunks:
