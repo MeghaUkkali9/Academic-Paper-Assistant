@@ -4,9 +4,9 @@ import re
 from typing import Dict, List, Optional, Union
 from src.schemas.chunking.model import DocumentChunk, ChunkMetadata
 from src.config import Settings
+from src.schemas.indexing.index_paper import PaperForIndexing
 
 logger = logging.getLogger(__name__)
-
 
 class DocumentChunker:
     """Service for chunking text into overlapping segments.
@@ -26,12 +26,7 @@ class DocumentChunker:
     
     def chunk_paper(
         self,
-        title: str,
-        abstract: str,
-        full_text: str,
-        arxiv_id: str,
-        paper_id: str,
-        sections: Optional[Union[Dict[str, str], str, list]] = None,
+        paper: PaperForIndexing
     ) -> List[DocumentChunk]:
         """Chunk a paper using hybrid section-based approach.
 
@@ -41,17 +36,24 @@ class DocumentChunker:
         - For sections >800 words: Split using traditional word-based chunking
         - Fallback to traditional chunking if no sections available
         """
-        # Try section-based chunking first
+        arxiv_id = paper.arxiv_id
+        paper_id = paper.paper_id,
+        title = paper.title,
+        abstract = paper.abstract,
+        full_text = paper.raw_text,
+        sections = paper.sections
+        
         if sections:
             try:
                 section_chunks = self._chunk_by_sections(title, abstract, arxiv_id, paper_id, sections)
+                
                 if section_chunks:
                     logger.info(f"Created {len(section_chunks)} section-based chunks for {arxiv_id}")
                     return section_chunks
+                
             except Exception as e:
                 logger.warning(f"Section-based chunking failed for {arxiv_id}: {e}")
 
-        # Fallback to traditional word-based chunking
         logger.info(f"Using traditional word-based chunking for {arxiv_id}")
         return self.chunk_text(full_text, arxiv_id, paper_id)
 
@@ -62,6 +64,7 @@ class DocumentChunker:
         paper_id: str
     ) -> List[DocumentChunk]:
         """Chunk text into overlapping word-based overlapping segments."""
+        
         if not text or not text.strip():
             logger.warning(f"Empty text provided for paper {arxiv_id}")
             return []
@@ -109,7 +112,6 @@ class DocumentChunker:
 
         chunk_words = words[chunk_start:chunk_end]
 
-        # +1 accounts for the space separator after the preceding words
         start_char = len(" ".join(words[:chunk_start])) + 1 if chunk_start > 0 else 0
         end_char = len(" ".join(words[:chunk_end]))
 
@@ -165,25 +167,20 @@ class DocumentChunker:
     def _chunk_by_sections(
         self, title: str, abstract: str, arxiv_id: str, paper_id: str, sections: Union[Dict[str, str], str, list]
     ) -> List[DocumentChunk]:
-        """Implement hybrid section-based chunking strategy.
-        """
-        # Parse sections data
+        """Implement hybrid section-based chunking strategy"""
         sections_dict = self._parse_sections(sections)
         if not sections_dict:
             return []
 
-        # Filter and clean sections
         sections_dict = self._filter_sections(sections_dict, abstract)
         if not sections_dict:
             logger.warning(f"No meaningful sections found after filtering for {arxiv_id}")
             return []
 
-        # Create header (title + abstract)
         header = f"{title}\n\nAbstract: {abstract}\n\n"
 
-        # Process sections using hybrid strategy
         chunks = []
-        small_sections = []  # Buffer for combining small sections
+        small_sections = []  
 
         section_items = list(sections_dict.items())
 
@@ -192,26 +189,21 @@ class DocumentChunker:
             section_words = len(content_str.split())
 
             if section_words < 100:
-                # Collect small sections to combine later
                 small_sections.append((section_title, content_str, section_words))
 
-                # If this is the last section or next section is large, process accumulated small sections
                 if i == len(section_items) - 1 or len(str(section_items[i + 1][1]).split()) >= 100:
                     chunks.extend(self._create_combined_chunk(header, small_sections, chunks, arxiv_id, paper_id))
                     small_sections = []
 
             elif 100 <= section_words <= 800:
-                # Perfect size - create single chunk
                 chunk_text = f"{header}Section: {section_title}\n\n{content_str}"
                 chunk = self._create_section_chunk(chunk_text, section_title, len(chunks), arxiv_id, paper_id)
                 chunks.append(chunk)
 
             else:
-                # Large section - split using traditional chunking
                 section_text = f"Section: {section_title}\n\n{content_str}"
                 full_section_text = f"{header}{section_text}"
 
-                # Use traditional chunking but with section context
                 section_chunks = self._split_large_section(
                     full_section_text, header, section_title, len(chunks), arxiv_id, paper_id
                 )
@@ -220,28 +212,23 @@ class DocumentChunker:
         return chunks
 
     def _filter_sections(self, sections_dict: Dict[str, str], abstract: str) -> Dict[str, str]:
-        """Filter out unwanted sections and avoid duplication.
-        """
+        """Filter out unwanted sections and avoid duplication."""
         filtered = {}
         abstract_words = set(abstract.lower().split())
 
         for section_title, section_content in sections_dict.items():
             content_str = str(section_content).strip()
 
-            # Skip empty sections
             if not content_str:
                 continue
 
-            # Skip metadata/header sections based on title
             if self._is_metadata_section(section_title):
                 continue
 
-            # Skip sections that are duplicates of the abstract
             if self._is_duplicate_abstract(content_str, abstract, abstract_words):
                 logger.debug(f"Skipping duplicate abstract section: {section_title}")
                 continue
 
-            # Skip sections that are too small and contain only metadata
             if len(content_str.split()) < 20 and self._is_metadata_content(content_str):
                 logger.debug(f"Skipping metadata section: {section_title}")
                 continue
@@ -268,11 +255,9 @@ class DocumentChunker:
             "accepted",
         ]
 
-        # Exact matches or very short titles that are likely metadata
         if title_lower in metadata_indicators or len(title_lower) < 5:
             return True
 
-        # Check if title contains only metadata indicators
         for indicator in metadata_indicators:
             if indicator in title_lower and len(title_lower) < 20:
                 return True
@@ -284,14 +269,12 @@ class DocumentChunker:
         content_lower = content.lower().strip()
         abstract_lower = abstract.lower().strip()
 
-        # Direct string match (allowing for minor formatting differences)
         if abstract_lower in content_lower or content_lower in abstract_lower:
             return True
 
-        # Word overlap check - if >80% of words overlap, likely duplicate
         content_words = set(content_lower.split())
 
-        if len(abstract_words) > 10:  # Only check for substantial abstracts
+        if len(abstract_words) > 10: 
             overlap = len(abstract_words.intersection(content_words))
             overlap_ratio = overlap / len(abstract_words)
 
@@ -304,10 +287,9 @@ class DocumentChunker:
         """Check if content contains only metadata (emails, arxiv IDs, etc.)."""
         content_lower = content.lower()
 
-        # Check for common metadata patterns
         metadata_patterns = [
-            "@",  # Email addresses
-            "arxiv:",  # ArXiv IDs
+            "@",  
+            "arxiv:", 
             "university",
             "institute",
             "department",
@@ -318,11 +300,10 @@ class DocumentChunker:
             "preprint",
         ]
 
-        # If content is mostly metadata patterns
         word_count = len(content.split())
-        if word_count < 30:  # Short content
+        if word_count < 30:  
             metadata_word_count = sum(1 for pattern in metadata_patterns if pattern in content_lower)
-            if metadata_word_count >= 2:  # Contains multiple metadata indicators
+            if metadata_word_count >= 2:  
                 return True
 
         return False
@@ -334,7 +315,6 @@ class DocumentChunker:
         if not small_sections:
             return []
 
-        # Combine all small sections
         combined_content = []
         total_words = 0
 
@@ -344,13 +324,10 @@ class DocumentChunker:
 
         combined_text = f"{header}{'\\n\\n'.join(combined_content)}"
 
-        # If still too small, combine with previous chunk if possible
         if total_words + len(header.split()) < 200 and existing_chunks:
-            # Try to merge with previous chunk
             prev_chunk = existing_chunks[-1]
             merged_text = f"{prev_chunk.text}\\n\\n{'\\n\\n'.join(combined_content)}"
 
-            # Update the previous chunk
             existing_chunks[-1] = DocumentChunk(
                 text=merged_text,
                 metadata=ChunkMetadata(
@@ -367,9 +344,8 @@ class DocumentChunker:
             )
             return []
 
-        # Create new chunk with combined content
         sections_titles = [title for title, _, _ in small_sections]
-        combined_title = " + ".join(sections_titles[:3])  # Limit title length
+        combined_title = " + ".join(sections_titles[:3]) 
         if len(sections_titles) > 3:
             combined_title += f" + {len(sections_titles) - 3} more"
 
@@ -405,13 +381,10 @@ class DocumentChunker:
         paper_id: str
     ) -> List[DocumentChunk]:
         """Split large sections using traditional word-based chunking."""
-        # Remove header from section text for chunking, then add back to each chunk
         section_only = full_section_text[len(header) :]
 
-        # Use traditional chunking on section content
         traditional_chunks = self.chunk_text(section_only, arxiv_id, paper_id)
 
-        # Add header to each chunk and update metadata
         enhanced_chunks = []
         for i, chunk in enumerate(traditional_chunks):
             enhanced_text = f"{header}{chunk.text}"

@@ -1,7 +1,7 @@
 import logging
-from typing import List, Any, Dict
+from typing import List
 from opensearchpy import OpenSearch, helpers
-
+from src.schemas.indexing.index_paper import ChunkWithEmbedding
 from src.config import Settings
 
 logger = logging.getLogger(__name__)
@@ -34,12 +34,12 @@ class OpenSearchClient:
         except Exception as e:
             logger.error(f"Error deleting chunks: {e}")
     
-    def bulk_index_insert(self, chunks: List[Dict[str, Any]]):
+    def bulk_index(self, chunks: List[ChunkWithEmbedding]):
         try:
             actions = []
             for chunk in chunks:
-                chunk_data = chunk["chunk_data"].copy()
-                chunk_data["embedding"] = chunk["embedding"]
+                chunk_data = chunk.chunk.model_dump()
+                chunk_data["embedding"] = chunk.embedding
 
                 action = {
                     "_index": self.index_name,

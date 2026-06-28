@@ -6,7 +6,7 @@ from .indexing_service import IndexingService
 from typing import Optional
 from src.config import Settings, get_settings
 
-def get_indexing_service(settings: Optional[Settings] = None):
+def create_indexing_service(settings: Optional[Settings] = None):
     if settings is None:
         settings = get_settings()
     
