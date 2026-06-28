@@ -17,7 +17,9 @@ class ResearchPaper(Base):
     categories = Column(JSON, nullable=False)
     published_on = Column(DateTime, nullable=False, index=True)
     pdf_url = Column(String, nullable=False)
-
+    
+    is_indexed = Column(Boolean, default= False)
+    
     raw_text = Column(Text, nullable=True)
     sections = Column(JSON, nullable=True)
 

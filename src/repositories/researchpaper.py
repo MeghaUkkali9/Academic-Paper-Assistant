@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, List
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 from src.database.arxivpaper import ResearchPaper
@@ -7,7 +7,22 @@ from src.database.model.paper import PaperCreate
 class PaperRepository:
     def __init__(self, session: Session):
         self.session = session
+        
+    def get_unindexed_papers(self) -> list[ResearchPaper]:
+        stmt = select(ResearchPaper).where(
+            ResearchPaper.is_indexed == False
+        )
+        return self.session.scalars(stmt).all()
+    
+    def mark_papers_as_indexed(self, papers: List[ResearchPaper]) -> None:
+        if not papers:
+            return
 
+        for paper in papers:
+            paper.is_indexed = True
+
+        self.session.commit()
+    
     def get_by_arxiv_id(self, arxiv_id: str) -> Optional[ResearchPaper]:
         stmt = select(ResearchPaper).where(ResearchPaper.arxiv_id == arxiv_id)
         return self.session.scalar(stmt)

@@ -15,7 +15,7 @@ from airflow.operators.python import PythonOperator
 
 from .setup import setup_environment
 from .ingest_papers import ingest_papers
-from .index_papers import index_papers
+from .index_papers import index_research_papers
 from .reporting import generate_daily_report
 
 logger = logging.getLogger(__name__)
@@ -54,7 +54,7 @@ with DAG(
     # Step 3: Index stored papers in OpenSearch for hybrid search
     index_papers_task = PythonOperator(
         task_id="index_papers",
-        python_callable=index_papers,
+        python_callable=index_research_papers,
     )
 
     # Step 4: Generate a summary report of what was ingested
