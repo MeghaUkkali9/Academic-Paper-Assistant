@@ -1,15 +1,12 @@
 import logging
 from sqlalchemy import text
-from .common import get_cached_services
+from .common import get_services
 
 logger = logging.getLogger(__name__)
 
 def _check_database_connection(database) -> None:
     """
     Verify the database is reachable.
-
-    Runs the simplest possible query — if it doesn't crash,
-    the database is alive.
     """
     with database.get_session() as session:
         session.execute(text("SELECT 1"))
@@ -21,7 +18,7 @@ def _check_opensearch_connection(opensearch_client) -> None:
     Verify OpenSearch is reachable and healthy.
 
     Green = fully healthy
-    Yellow = healthy but some replicas missing (still usable)
+    Yellow = healthy but some replicas missing 
     Red = primary shards missing — data loss risk, do NOT proceed
     """
     try:
@@ -69,11 +66,11 @@ def setup_environment() -> dict:
     
     logger.info("Starting pre-flight checks...")
     
-    _, _, database, _, opensearch_client = get_cached_services()
+    _, _, database, _, opensearch_client = get_services()
     
     _check_database_connection(database)
     _check_opensearch_connection(opensearch_client)
-    _setup_search_indices(opensearch_client) 
+    #_setup_search_indices(opensearch_client) 
     
     logger.info("Pre-flight checks completed successfully.")    
     

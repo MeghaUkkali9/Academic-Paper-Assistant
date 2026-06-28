@@ -19,7 +19,7 @@ def index_research_papers(**context):
             repository = PaperRepository(session)
 
             papers = repository.get_unindexed_papers()
-            
+    
             if not papers:
                 logger.info("No unindexed papers found.")
                 return {

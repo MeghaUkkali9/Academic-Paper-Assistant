@@ -179,6 +179,7 @@ class ResearchPaperManager:
             categories=metadata.categories,
             published_on=published_on,
             pdf_url=metadata.pdf_url,
+            is_indexed = False,
             raw_text=pdf_content.raw_text,
             sections=[
                 {

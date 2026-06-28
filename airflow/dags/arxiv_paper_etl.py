@@ -16,16 +16,16 @@ from airflow.operators.python import PythonOperator
 from .setup import setup_environment
 from .ingest_papers import ingest_papers
 from .index_papers import index_research_papers
-from .reporting import generate_daily_report
+from .reporting import generate_report
 
 logger = logging.getLogger(__name__)
 
 # --- DAG definition ---
 with DAG(
     dag_id="arxiv_paper_etl",
-    description="Daily pipeline: fetch arXiv papers -> store -> index -> report -> cleanup",
+    description="Daily scheuler: fetches papers -> store -> index -> report -> cleanup",
     default_args={
-        "owner": "arxiv-curator",
+        "owner": "megha_ukkali_research_paper",
         "depends_on_past": False,
         "start_date": datetime(2025, 10, 10),
         "retries": 3,
@@ -60,7 +60,7 @@ with DAG(
     # Step 4: Generate a summary report of what was ingested
     generate_daily_report_task = PythonOperator(
         task_id="generate_report",
-        python_callable=generate_daily_report,
+        python_callable=generate_report,
     )
 
     # Step 5: Clean up temp files older than 30 days

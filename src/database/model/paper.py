@@ -12,6 +12,7 @@ class PaperBase(BaseModel):
     pdf_url: str 
 
 class PaperCreate(PaperBase):
+    is_indexed: bool
     raw_text: Optional[str] 
     sections: Optional[List[Dict[str, Any]]] 
     

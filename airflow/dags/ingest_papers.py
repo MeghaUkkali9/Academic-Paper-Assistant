@@ -1,22 +1,9 @@
 import asyncio
 import logging
 from datetime import datetime, timedelta
-from .common import get_cached_services
+from .common import get_services
 
 logger = logging.getLogger(__name__)
-
-async def run_paper_ingestion_pipeline(
-    target_date: str
-) -> dict:
-    """Async wrapper for the paper ingestion pipeline"""
-    arxiv_client, _, database, paper_fetcher, _ = get_cached_services()
-    
-    with database.get_session() as session:
-        return await paper_fetcher.process_papers(
-            from_date=target_date,
-            to_date=target_date,
-            db_session=session,
-        )
 
 def ingest_papers(**context):
     """Fetch daily papers from arXiv and store in PostgreSQL.
@@ -39,18 +26,22 @@ def ingest_papers(**context):
 
     logger.info(f"Fetching papers for date: {target_date}")
 
-    results = asyncio.run(
-        run_paper_ingestion_pipeline(
-            target_date=target_date
-        )
-    )
+    arxiv_client, _, database, paper_fetcher, _ = get_services()
+    
+    with database.get_session() as session:
+        results = asyncio.run(paper_fetcher.process_papers(
+            from_date=target_date,
+            to_date=target_date,
+            db_session=session,
+        ))
 
-    logger.info(f"Daily fetch complete: {results['papers_fetched']} papers for {target_date}")
+    logger.info(f"Daily fetch complete: {results['papers_fetched']} papers for {target_date} and stored {results['papers_stored']} contents of papers to PostgreSQL")
 
     results["date"] = target_date
-    ti = context.get("ti")
-    if ti:
-        ti.xcom_push(key="fetch_results", value=results)
+    
+    task_instance = context.get("ti")
+    if task_instance:
+        task_instance.xcom_push(key="fetch_papers", value=results)
 
     return results
 #todo:

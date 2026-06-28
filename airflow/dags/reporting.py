@@ -1,2 +1,2 @@
-def generate_daily_report():
+def generate_report():
     pass

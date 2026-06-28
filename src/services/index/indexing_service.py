@@ -39,6 +39,9 @@ class IndexingService:
         )
         try:
             for paper in papers:
+                if paper.arxiv_id:
+                    self.openSearch_client.delete_chunks(paper.arxiv_id)
+                    
                 chunks = self.document_chunker.chunk_paper(paper=paper)
                 
                 result.chunks_created += len(chunks)

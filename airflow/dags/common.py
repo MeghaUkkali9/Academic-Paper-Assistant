@@ -25,7 +25,7 @@ class Services(NamedTuple):
 
 
 @lru_cache(maxsize=1)
-def get_cached_services() -> Services:
+def get_services() -> Services:
     """
     Initialize all services and cache them for the lifetime
     of this process.
@@ -37,7 +37,7 @@ def get_cached_services() -> Services:
 
     What it DOES help with:
     If multiple functions inside the same task call
-    get_cached_services(), they all get the same objects
+    get_services(), they all get the same objects
     back without re-initializing anything.
     """
     logger.info("Initializing services for this process")
