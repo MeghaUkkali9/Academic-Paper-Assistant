@@ -41,7 +41,7 @@ def ingest_papers(**context):
     
     task_instance = context.get("ti")
     if task_instance:
-        task_instance.xcom_push(key="fetch_papers", value=results)
+        task_instance.xcom_push(key="ingestion_result", value=results)
 
     return results
 #todo:

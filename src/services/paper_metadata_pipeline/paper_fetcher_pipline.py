@@ -17,6 +17,7 @@ from src.services.pdf_parser.parser import PDFParserService
 from src.database.model.paper import PaperCreate
 from src.repositories.researchpaper import PaperRepository
 from src.exceptions import PaperNotSavedException
+from src.exceptions import PDFValidationError
 
 logger = logging.getLogger(__name__)
 
@@ -60,7 +61,7 @@ class ResearchPaperManager:
                 to_date=to_date,
             )
         
-        parsed_papers = await self._download_and_parse_papers(
+        parsed_papers, papers_skipped, papers_failed = await self._download_and_parse_papers(
                 research_papers
             )
         
@@ -74,9 +75,11 @@ class ResearchPaperManager:
             "papers_fetched": len(research_papers),
             "papers_parsed": len(parsed_papers),
             "papers_stored": papers_stored,
+            "papers_skipped": papers_skipped,
+            "papers_failed": papers_failed,
         }
 
-    async def _download_and_parse_papers(self, research_papers: list[ArxivResearchPaper]) -> dict[str, ParsedPaper]:
+    async def _download_and_parse_papers(self, research_papers: list[ArxivResearchPaper]) -> tuple[dict[str, ParsedPaper], int, int]:
         tasks = [
             self._download_and_parse_task(
                 research_paper
@@ -88,15 +91,22 @@ class ResearchPaperManager:
 
         parsed_papers: dict[str, ParsedPaper] = {}
 
+        papers_skipped = 0
+        papers_failed = 0
         for paper, result in zip(research_papers, results):
+            if isinstance(result, PDFValidationError):
+                papers_skipped += 1
+                logger.info(f"Skipping paper {paper.arxiv_id}: {result}")
+                continue
             if isinstance(result, Exception):
+                papers_failed += 1
                 logger.error(f"Failed processing {paper.arxiv_id}: {result}")
                 continue
 
             if result is not None:
                 parsed_papers[paper.arxiv_id] = result
 
-        return parsed_papers
+        return parsed_papers, papers_skipped, papers_failed
 
     async def _download_and_parse_task(
         self,
@@ -129,6 +139,8 @@ class ResearchPaperManager:
                 pdf_content=pdf_content,
             )
 
+        except PDFValidationError:
+            raise
         except Exception as e:
             logger.exception(f"Failed processing paper {research_paper.arxiv_id}")
             raise DownloadParsingException(f"Failed processing paper {research_paper.arxiv_id}") from e

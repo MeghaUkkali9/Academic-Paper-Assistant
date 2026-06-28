@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 # --- DAG definition ---
 with DAG(
     dag_id="arxiv_paper_etl",
-    description="Daily scheuler: fetches papers -> store -> index -> report -> cleanup",
+    description="Daily ETL pipeline for ingesting and indexing arXiv research papers",
     default_args={
         "owner": "megha_ukkali_research_paper",
         "depends_on_past": False,
