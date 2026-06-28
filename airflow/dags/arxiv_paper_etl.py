@@ -13,10 +13,10 @@ from airflow import DAG
 from airflow.operators.bash import BashOperator
 from airflow.operators.python import PythonOperator
 
-from .setup import setup_environment
-from .ingest_papers import ingest_papers
-from .index_papers import index_research_papers
-from .reporting import generate_report
+from src.airflow_tasks.setup import setup_environment
+from src.airflow_tasks.ingest_papers import ingest_papers
+from src.airflow_tasks.index_papers import index_research_papers
+from src.airflow_tasks.reporting import generate_report
 
 logger = logging.getLogger(__name__)
 

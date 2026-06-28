@@ -1,6 +1,6 @@
 import logging
 from sqlalchemy import text
-from .common import get_services
+from src.airflow_tasks.common import get_services
 
 logger = logging.getLogger(__name__)
 

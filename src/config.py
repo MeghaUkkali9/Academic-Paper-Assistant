@@ -104,7 +104,6 @@ class OpenSearchSettings(BaseConfigSettings):
 class EmbeddingSettings(BaseConfigSettings):
     model_config = SettingsConfigDict(
         env_file=[".env", str(ENV_FILE_PATH)],
-        env_prefix="JINA__",
         extra="ignore",
         frozen=True,
         case_sensitive=False,

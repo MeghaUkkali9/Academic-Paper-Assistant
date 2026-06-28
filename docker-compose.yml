@@ -108,7 +108,7 @@ services:
       - .env
     environment:
       - AIRFLOW_HOME=/opt/airflow
-      - PYTHONPATH=/opt/airflow/src
+      - PYTHONPATH=/opt/airflow
       - POSTGRES_DATABASE_URL=postgresql+psycopg2://neondb_owner:npg_u86lWTmfVHic@ep-billowing-base-apeh812e-pooler.c-7.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require
       - OPENSEARCH_HOST=http://opensearch:9200
       - OPENSEARCH__HOST=http://opensearch:9200

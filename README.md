@@ -91,6 +91,9 @@ docker compose down -v
 
 # Rebuild after code changes
 docker compose up -d --build
+
+# Open terminal inside the running rag-airflow container.
+docker exec -it rag-airflow bash
 ```
 
 ### Verify PostgreSQL Connection:
