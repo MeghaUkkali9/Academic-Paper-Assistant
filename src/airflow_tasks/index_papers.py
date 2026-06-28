@@ -40,7 +40,7 @@ def index_research_papers(**context):
                         title=p.title,
                         raw_text=p.raw_text,
                         sections=p.sections,
-                        paper_id = p.id,
+                        paper_id = str(p.id),
                         authors = p.authors,
                         categories = p.categories,
                         published_on = p.published_on,

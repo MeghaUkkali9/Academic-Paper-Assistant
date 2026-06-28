@@ -94,6 +94,9 @@ docker compose up -d --build
 
 # Open terminal inside the running rag-airflow container.
 docker exec -it rag-airflow bash
+
+# Check DAGs
+airflow dags list
 ```
 
 ### Verify PostgreSQL Connection:

@@ -16,7 +16,9 @@ class OpenSearchClient:
                 verify_certs=False,
                 ssl_show_warn=False,
             )
-        
+    def get_cluster_health(self):
+        return self.client.cluster.health()
+    
     def delete_chunks(self, arxiv_id: str):
         try:
             response = self.client.delete_by_query(

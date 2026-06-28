@@ -37,10 +37,10 @@ class DocumentChunker:
         - Fallback to traditional chunking if no sections available
         """
         arxiv_id = paper.arxiv_id
-        paper_id = paper.paper_id,
-        title = paper.title,
-        abstract = paper.abstract,
-        full_text = paper.raw_text,
+        paper_id = paper.paper_id
+        title = paper.title
+        abstract = paper.abstract
+        full_text = paper.raw_text
         sections = paper.sections
         
         if sections:

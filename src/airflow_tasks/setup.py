@@ -22,7 +22,7 @@ def _check_opensearch_connection(opensearch_client) -> None:
     Red = primary shards missing — data loss risk, do NOT proceed
     """
     try:
-        health = opensearch_client.cluster.health()
+        health = opensearch_client.get_cluster_health()
     
         status = health.get("status")
         if status == "red":
@@ -32,8 +32,8 @@ def _check_opensearch_connection(opensearch_client) -> None:
         else:
             raise Exception(f"Unexpected OpenSearch cluster status: {status}")
     except Exception as e:
-        logger.error(f"Error connecting to OpenSearch: {str(e)}")   
-        raise Exception(f"Failed to connect to OpenSearch: {str(e)}")
+        logger.exception("Error connecting to OpenSearch")
+        raise
 
 def _setup_search_indices(opensearch_client) -> None:
     """
