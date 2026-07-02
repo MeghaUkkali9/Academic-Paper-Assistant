@@ -6,7 +6,7 @@ from pydantic import BaseModel
 from src.schemas.chunking.model import DocumentChunk
 
 class PaperForIndexing(BaseModel):
-    paper_id: str
+    paper_id: UUID
     arxiv_id: str
 
     title: str

@@ -42,7 +42,7 @@ class IndexingService:
             for paper in papers:
                
                 self.openSearch_client.delete_chunks(paper.arxiv_id)
-                    
+               
                 chunks = self.document_chunker.chunk_paper(paper=paper)
                 
                 if not chunks:
@@ -58,6 +58,7 @@ class IndexingService:
                 result.embeddings_generated += len(embeddings)
                 
                 if len(embeddings) != len(chunks):
+                    result.papers_failed += 1
                     logger.error(f"Embedding count {len(embeddings)} does not match chunk count {len(chunks)} for paper {paper.arxiv_id}")
                     raise EmbeddingGenerationException(f"Expected {len(chunks)} embeddings but received {len(embeddings)}.")
                 
@@ -84,10 +85,10 @@ class IndexingService:
                 ]
                     
                 bulk_result = self.openSearch_client.bulk_index(chunks_with_embeddings)
-                result.chunks_indexed += bulk_result.success
-                result.chunks_indexing_failed += bulk_result.failed
-                
-                logger.info(f"Indexed {bulk_result.success} chunks for paper {paper.arxiv_id}")
+                result.chunks_indexed += bulk_result["success"]
+                result.chunks_indexing_failed += bulk_result["failed"]
+
+                logger.info(f"Indexed {bulk_result['success']} chunks for paper {paper.arxiv_id}")
                 
                 result.papers_processed += 1
             
