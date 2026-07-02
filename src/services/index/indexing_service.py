@@ -5,6 +5,7 @@ from src.services.chunking.chunking import DocumentChunker
 from src.services.embedding.client import EmbeddingClient
 from src.services.opensearch.client import OpenSearchClient
 from src.schemas.indexing.index_paper import PaperForIndexing, ChunkWithEmbedding, IndexingResult
+from src.exceptions import EmbeddingGenerationException
 
 logger = logging.getLogger(__name__)
 
@@ -39,11 +40,15 @@ class IndexingService:
         )
         try:
             for paper in papers:
-                if paper.arxiv_id:
-                    self.openSearch_client.delete_chunks(paper.arxiv_id)
+               
+                self.openSearch_client.delete_chunks(paper.arxiv_id)
                     
                 chunks = self.document_chunker.chunk_paper(paper=paper)
                 
+                if not chunks:
+                    logger.warning("No chunks created for paper %s.", paper.arxiv_id)
+                    result.papers_failed += 1
+                    continue
                 result.chunks_created += len(chunks)
                 logger.info(f"Successfully completed chunking process for arxiv_id: {paper.arxiv_id}")
                 
@@ -54,11 +59,25 @@ class IndexingService:
                 
                 if len(embeddings) != len(chunks):
                     logger.error(f"Embedding count {len(embeddings)} does not match chunk count {len(chunks)} for paper {paper.arxiv_id}")
-                    raise ValueError(f"Expected {len(chunks)} embeddings but received {len(embeddings)}.")
+                    raise EmbeddingGenerationException(f"Expected {len(chunks)} embeddings but received {len(embeddings)}.")
                 
                 chunks_with_embeddings = [
                     ChunkWithEmbedding(
-                        chunk=chunk,
+                        chunk={
+                            "arxiv_id": chunk.arxiv_id,
+                            "paper_id": chunk.paper_id,
+                            "chunk_index": chunk.metadata.chunk_index,
+                            "chunk_text": chunk.text,
+                            "chunk_word_count": chunk.metadata.word_count,
+                            "start_char": chunk.metadata.start_char,
+                            "end_char": chunk.metadata.end_char,
+                            "section_title": chunk.metadata.section_title,
+                            "title": paper.title,
+                            "authors": ", ".join(paper.authors),
+                            "abstract": paper.abstract,
+                            "categories": paper.categories,
+                            "published_date": paper.published_on,
+                        },
                         embedding=embedding,
                     )
                     for chunk, embedding in zip(chunks, embeddings)

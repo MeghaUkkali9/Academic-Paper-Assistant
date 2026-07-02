@@ -1,5 +1,5 @@
 from typing import Optional, List
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.orm import Session
 from src.database.arxivpaper import ResearchPaper
 from src.database.model.paper import PaperCreate
@@ -14,13 +14,19 @@ class PaperRepository:
         )
         return self.session.scalars(stmt).all()
     
-    def mark_papers_as_indexed(self, papers: List[ResearchPaper]) -> None:
-        if not papers:
+   
+
+    def mark_papers_as_indexed(self, paper_ids: List[str]) -> None:
+        if not paper_ids:
             return
 
-        for paper in papers:
-            paper.is_indexed = True
+        stmt = (
+            update(ResearchPaper)
+            .where(ResearchPaper.id.in_(paper_ids))
+            .values(is_indexed=True)
+        )
 
+        self.session.execute(stmt)
         self.session.commit()
     
     def get_by_arxiv_id(self, arxiv_id: str) -> Optional[ResearchPaper]:

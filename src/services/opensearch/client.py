@@ -16,6 +16,7 @@ class OpenSearchClient:
                 verify_certs=False,
                 ssl_show_warn=False,
             )
+        
     def get_cluster_health(self):
         return self.client.cluster.health()
     
@@ -35,6 +36,7 @@ class OpenSearchClient:
                 return False
         except Exception as e:
             logger.error(f"Error deleting chunks: {e}")
+            raise
     
     def bulk_index(self, chunks: List[ChunkWithEmbedding]):
         try:
@@ -49,16 +51,16 @@ class OpenSearchClient:
                 }
                 actions.append(action)
 
-            success, failed = helpers.bulk(
-                self.client, 
-                actions, 
+            success, errors = helpers.bulk(
+                self.client,
+                actions,
                 refresh=True
             )
 
             logger.info(f"Bulk indexed {success} chunks, {len(failed)} failed")
             return {
                 "success": success,
-                "failed": len(failed)
+                "failed": len(errors)
             }
 
         except Exception as e:

@@ -13,9 +13,7 @@ def make_arxiv_client() -> ArxivClient:
     settings = get_settings()
 
     if not settings.arxiv:
-        raise ValueError(
-            "ArxivClient config missing — check your settings for [arxiv] section"
-        )
+        raise ValueError("ArxivClient config missing — check your settings for [arxiv] section")
 
     logger.info("Creating ArxivClient")
     return ArxivClient(settings=settings.arxiv)

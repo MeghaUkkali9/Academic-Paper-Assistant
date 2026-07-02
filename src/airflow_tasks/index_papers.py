@@ -15,9 +15,7 @@ def index_research_papers(**context):
         indexing_service = create_indexing_service()
         
         with database.get_session() as session:
-
             repository = PaperRepository(session)
-
             papers = repository.get_unindexed_papers()
     
             if not papers:
@@ -34,25 +32,27 @@ def index_research_papers(**context):
                 
             logger.info(f"{len(papers)} papers waiting to be indexed.")
             
-            papers_for_indexing = [
-                    PaperForIndexing(
-                        arxiv_id=p.arxiv_id,
-                        title=p.title,
-                        raw_text=p.raw_text,
-                        sections=p.sections,
-                        paper_id = str(p.id),
-                        authors = p.authors,
-                        categories = p.categories,
-                        published_on = p.published_on,
-                        abstract = p.summary
-                    )
-                    for p in papers 
-            ]
-            indexing_result =  asyncio.run(indexing_service.index_papers(papers_for_indexing))
-            logger.info(f"Indexing completed. Processed={indexing_result.papers_processed} papers,"
+        papers_for_indexing = [
+                PaperForIndexing(
+                    arxiv_id=p.arxiv_id,
+                    title=p.title,
+                    raw_text=p.raw_text,
+                    sections=p.sections,
+                    paper_id = str(p.id),
+                    authors = p.authors,
+                    categories = p.categories,
+                    published_on = p.published_on,
+                    abstract = p.summary
+                )
+                for p in papers 
+    ]
+        indexing_result =  asyncio.run(indexing_service.index_papers(papers_for_indexing))
+        logger.info(f"Indexing completed. Processed={indexing_result.papers_processed} papers,"
                         f"Indexed={indexing_result.chunks_indexed} chunks, "
                         f"Failed={ indexing_result.chunks_indexing_failed} chunks.")
             
+        with database.get_session() as session:
+            repository = PaperRepository(session)
             repository.mark_papers_as_indexed(papers)
         
         task_instance = context.get("ti")

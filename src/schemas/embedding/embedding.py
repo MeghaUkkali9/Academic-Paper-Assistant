@@ -5,7 +5,8 @@ class EmbeddingRequest(BaseModel):
     model: str
     task: str
     dimensions: int
-    input: int
+    input: List[int]
+    embedding_type: str = "float"
 
 class EmbeddingData(BaseModel):
     object: str

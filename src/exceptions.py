@@ -58,3 +58,6 @@ class PDFDownloadTimeoutError(PDFDownloadException):
 
 class PDFCacheException(Exception):
     """Exception raised for PDF cache-related errors."""
+    
+class EmbeddingGenerationException(Exception):
+    """Exception raised for not matching exact size of chunks"""
