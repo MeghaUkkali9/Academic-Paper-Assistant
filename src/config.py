@@ -124,7 +124,7 @@ class Settings(BaseConfigSettings):
     environment: Literal["development", "staging", "production"] = "development"
     service_name: str = "rag-api"
 
-    postgres_database_url: str = "postgresql+psycopg2://neondb_owner:npg_Ori1UY3LaFmE@ep-sweet-cloud-aiuz4z54-pooler.c-4.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
+    postgres_database_url: str
     postgres_echo_sql: bool = False
     postgres_pool_size: int = 5
     postgres_max_overflow: int = 0

@@ -1,12 +1,13 @@
 import asyncio
 import logging
 from datetime import datetime, timedelta
-from .common import get_services
+from src.arxiv_tasks.common import get_services
 
 logger = logging.getLogger(__name__)
 
 def ingest_papers(**context):
-    """Fetch daily papers from arXiv and store in PostgreSQL.
+    """
+    Fetch daily papers from arXiv and store in PostgreSQL.
 
     This task:
     1. Determines the target date (defaults to yesterday)

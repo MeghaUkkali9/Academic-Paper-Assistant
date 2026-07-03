@@ -1,12 +1,11 @@
 from functools import lru_cache
 
 from src.config import get_settings
-from .parser import PDFParserService
-
 
 @lru_cache(maxsize=1)
-def make_pdf_parser_service() -> PDFParserService:
+def make_pdf_parser_service():
     """Create cached PDF parser service using Docling."""
+    from .parser import PDFParserService
     
     settings = get_settings()
     

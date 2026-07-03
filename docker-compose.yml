@@ -22,11 +22,12 @@ services:
     environment:
       - OPENSEARCH_HOST=http://opensearch:9200
       - OPENSEARCH__HOST=http://opensearch:9200
-      - POSTGRES_DATABASE_URL=postgresql+psycopg2://neondb_owner:npg_Ori1UY3LaFmE@ep-sweet-cloud-aiuz4z54-pooler.c-4.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require
+      - POSTGRES_DATABASE_URL=${POSTGRES_DATABASE_URL}
       - REDIS__HOST=redis
+    restart: unless-stopped
     networks:
       - rag-network
-  
+
   postgres:
     image: postgres:16-alpine
     container_name: rag-postgres
@@ -86,18 +87,20 @@ services:
       - OPENSEARCH_HOSTS=http://opensearch:9200
       - DISABLE_SECURITY_DASHBOARDS_PLUGIN=true
     depends_on:
-      - opensearch
+      opensearch:
+        condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:5601/api/status || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 5
       start_period: 60s
+    restart: unless-stopped
     networks:
       - rag-network
 
   airflow:
-    build: 
+    build:
       context: ./airflow
       dockerfile: Dockerfile
     container_name: rag-airflow
@@ -108,11 +111,13 @@ services:
       - .env
     environment:
       - AIRFLOW_HOME=/opt/airflow
-      - PYTHONPATH=/opt/airflow/src
-      - POSTGRES_DATABASE_URL=postgresql+psycopg2://neondb_owner:npg_Ori1UY3LaFmE@ep-sweet-cloud-aiuz4z54-pooler.c-4.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require
+      - PYTHONPATH=/opt/airflow
+      - POSTGRES_DATABASE_URL=${POSTGRES_DATABASE_URL}
       - OPENSEARCH_HOST=http://opensearch:9200
       - OPENSEARCH__HOST=http://opensearch:9200
       - REDIS__HOST=redis
+      - PYTHONWARNINGS=ignore::FutureWarning:airflow,ignore::DeprecationWarning:airflow
+      - AIRFLOW__WEBSERVER__UPDATE_FAB_PERMS=False
     volumes:
       - ./airflow/dags:/opt/airflow/dags
       - airflow_logs:/opt/airflow/logs
@@ -126,6 +131,7 @@ services:
       timeout: 10s
       retries: 3
       start_period: 120s
+    restart: unless-stopped
     networks:
       - rag-network
 
@@ -155,4 +161,4 @@ volumes:
 
 networks:
   rag-network:
-    driver: bridge 
+    driver: bridge

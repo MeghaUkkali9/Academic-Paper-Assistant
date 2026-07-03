@@ -1,19 +1,60 @@
 #!/bin/bash
-set -e
+set -euo pipefail
 
-airflow db migrate
-airflow sync-perm
+ROLE="${1:-webserver}"
 
-airflow users create \
-    --username ${AIRFLOW_ADMIN_USERNAME} \
-    --password ${AIRFLOW_ADMIN_PASSWORD} \
-    --firstname Megha \
-    --lastname U \
-    --role Admin \
-    --email megha@gmail.com 2>/dev/null || true
+# --- Neon IPv4 fix -----------------------------------------------------
+# Some Docker networks don't route IPv6 correctly, and Neon's hostname can
+# resolve to an IPv6 address first. This forces the TCP connection over
+# IPv4 while still using the original hostname for SSL verification.
+if [ -n "${AIRFLOW__DATABASE__SQL_ALCHEMY_CONN:-}" ]; then
+    if [[ "$AIRFLOW__DATABASE__SQL_ALCHEMY_CONN" != *"hostaddr="* ]]; then
+        NEON_IPV4=$(python3 - "$AIRFLOW__DATABASE__SQL_ALCHEMY_CONN" <<'PYEOF'
+import socket, sys
+from urllib.parse import urlparse
+host = urlparse(sys.argv[1]).hostname
+try:
+    print(socket.getaddrinfo(host, None, socket.AF_INET)[0][4][0])
+except Exception:
+    print("")
+PYEOF
+)
+        if [ -n "$NEON_IPV4" ]; then
+            SEP="&"; [[ "$AIRFLOW__DATABASE__SQL_ALCHEMY_CONN" != *"?"* ]] && SEP="?"
+            echo "Airflow DB: forcing IPv4 -> $NEON_IPV4"
+            export AIRFLOW__DATABASE__SQL_ALCHEMY_CONN="${AIRFLOW__DATABASE__SQL_ALCHEMY_CONN}${SEP}hostaddr=${NEON_IPV4}"
+        fi
+    fi
+fi
+# -------------------------------------------------------------------------
 
-# Start scheduler in background
-airflow scheduler &
+if [ "$ROLE" = "init" ]; then
+    # Clean up stale PID files from a previous, uncleanly-stopped run
+    rm -f "${AIRFLOW_HOME}/airflow-webserver.pid"
+    rm -f "${AIRFLOW_HOME}/airflow-scheduler.pid"
 
-# Keep webserver as PID 1
-exec airflow webserver
+    echo "Initializing Airflow database..."
+    airflow db migrate
+
+    echo "Syncing FAB permissions..."
+    airflow sync-perm
+
+    echo "Creating admin user..."
+    airflow users create \
+        --username "${AIRFLOW_ADMIN_USERNAME}" \
+        --password "${AIRFLOW_ADMIN_PASSWORD}" \
+        --firstname Megha --lastname U --role Admin --email megha@gmail.com \
+        || echo "Admin user already exists, skipping."
+    exit 0
+fi
+
+if [ "$ROLE" = "webserver" ]; then
+    echo "Starting Airflow scheduler..."
+    airflow scheduler &
+
+    echo "Starting Airflow webserver..."
+    exec airflow webserver
+fi
+
+echo "Unknown role: $ROLE" >&2
+exit 1

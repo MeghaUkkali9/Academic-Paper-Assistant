@@ -5,12 +5,6 @@ from typing import NamedTuple
 
 sys.path.insert(0, "/opt/airflow")
 
-from src.database.factory import create_database
-from src.services.arxiv.factory import make_arxiv_client
-from src.services.paper_metadata_pipeline.factory import create_paper_fetcher
-from src.services.opensearch.factory import get_opensearch_client
-from src.services.pdf_parser.factory import make_pdf_parser_service
-
 logger = logging.getLogger(__name__)
 
 class Services(NamedTuple):
@@ -40,6 +34,12 @@ def get_services() -> Services:
     get_services(), they all get the same objects
     back without re-initializing anything.
     """
+    from src.database.factory import create_database
+    from src.services.arxiv.factory import make_arxiv_client
+    from src.services.paper_metadata_pipeline.factory import create_paper_fetcher
+    from src.services.opensearch.factory import get_opensearch_client
+    from src.services.pdf_parser.factory import make_pdf_parser_service
+
     logger.info("Initializing services for this process")
 
     
