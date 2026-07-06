@@ -38,22 +38,24 @@ def index_research_papers(**context):
                     title=p.title,
                     raw_text=p.raw_text,
                     sections=p.sections,
-                    paper_id = str(p.id),
+                    paper_id = p.id,
                     authors = p.authors,
                     categories = p.categories,
                     published_on = p.published_on,
                     abstract = p.summary
                 )
                 for p in papers 
-    ]
+        ]
         indexing_result =  asyncio.run(indexing_service.index_papers(papers_for_indexing))
         logger.info(f"Indexing completed. Processed={indexing_result.papers_processed} papers,"
                         f"Indexed={indexing_result.chunks_indexed} chunks, "
                         f"Failed={ indexing_result.chunks_indexing_failed} chunks.")
             
+        paper_ids = [paper.id for paper in papers]
+        
         with database.get_session() as session:
             repository = PaperRepository(session)
-            repository.mark_papers_as_indexed(papers)
+            repository.mark_papers_as_indexed(paper_ids)
         
         task_instance = context.get("ti")
         

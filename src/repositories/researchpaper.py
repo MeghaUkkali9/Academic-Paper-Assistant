@@ -1,6 +1,7 @@
 from typing import Optional, List
 from sqlalchemy import select, update
 from sqlalchemy.orm import Session
+from uuid import UUID
 from src.database.arxivpaper import ResearchPaper
 from src.database.model.paper import PaperCreate
 
@@ -14,9 +15,8 @@ class PaperRepository:
         )
         return self.session.scalars(stmt).all()
     
-   
 
-    def mark_papers_as_indexed(self, paper_ids: List[str]) -> None:
+    def mark_papers_as_indexed(self, paper_ids: List[UUID]) -> None:
         if not paper_ids:
             return
 

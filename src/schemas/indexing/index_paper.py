@@ -20,7 +20,7 @@ class PaperForIndexing(BaseModel):
     sections: List[Dict[str, Any]] | None = None
     
 class ChunkWithEmbedding(BaseModel):
-    chunk: DocumentChunk
+    chunk: Dict[str, Any]
     embedding: List[float]
     
 class IndexingResult(BaseModel):

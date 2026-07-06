@@ -49,6 +49,7 @@ class IndexingService:
                     logger.warning("No chunks created for paper %s.", paper.arxiv_id)
                     result.papers_failed += 1
                     continue
+                
                 result.chunks_created += len(chunks)
                 logger.info(f"Successfully completed chunking process for arxiv_id: {paper.arxiv_id}")
                 

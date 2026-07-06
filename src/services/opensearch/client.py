@@ -42,7 +42,7 @@ class OpenSearchClient:
         try:
             actions = []
             for chunk in chunks:
-                chunk_data = chunk.chunk.model_dump()
+                chunk_data = chunk.chunk
                 chunk_data["embedding"] = chunk.embedding
 
                 action = {
@@ -57,7 +57,7 @@ class OpenSearchClient:
                 refresh=True
             )
 
-            logger.info(f"Bulk indexed {success} chunks, {len(failed)} failed")
+            logger.info(f"Bulk indexed {success} chunks, {len(errors)} failed")
             return {
                 "success": success,
                 "failed": len(errors)

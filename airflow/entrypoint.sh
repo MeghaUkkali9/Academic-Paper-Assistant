@@ -4,9 +4,6 @@ set -euo pipefail
 ROLE="${1:-webserver}"
 
 # --- Neon IPv4 fix -----------------------------------------------------
-# Some Docker networks don't route IPv6 correctly, and Neon's hostname can
-# resolve to an IPv6 address first. This forces the TCP connection over
-# IPv4 while still using the original hostname for SSL verification.
 if [ -n "${AIRFLOW__DATABASE__SQL_ALCHEMY_CONN:-}" ]; then
     if [[ "$AIRFLOW__DATABASE__SQL_ALCHEMY_CONN" != *"hostaddr="* ]]; then
         NEON_IPV4=$(python3 - "$AIRFLOW__DATABASE__SQL_ALCHEMY_CONN" <<'PYEOF'
