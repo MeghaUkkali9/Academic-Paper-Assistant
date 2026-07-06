@@ -39,12 +39,12 @@ class ArxivSettings(BaseConfigSettings):
     ] = "descending"
     rate_limit_delay: float = 3.0
     timeout_seconds: int = 60
-    max_papers: int = 5
+    max_papers: int = 2
     search_category: str = "cs.AI"
     download_max_retries: int = 3
     download_retry_delay_base: float = 5.0
-    max_concurrent_downloads: int = 5
-    max_concurrent_parsing: int = 2
+    max_concurrent_downloads: int = 3
+    max_concurrent_parsing: int = 1
 
     namespaces: dict = {
         "atom": "http://www.w3.org/2005/Atom",
