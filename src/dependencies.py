@@ -1,7 +1,8 @@
 from typing import TYPE_CHECKING, Annotated, Generator, Optional
 from fastapi import Depends
-from src.services.opensearch.client import OpenSearchClient
 
+from src.services.opensearch.client import OpenSearchClient
+from src.services.embedding.client import EmbeddingClient
 
 if TYPE_CHECKING:
     from fastapi import Depends, Request
@@ -12,9 +13,6 @@ else:
         from sqlalchemy.orm import Session
     except ImportError:
         pass
-    
-def get_opensearch_client(request: Request) -> OpenSearchClient:
-    """Get OpenSearch client from the request state."""
-    return request.app.state.opensearch_client
 
-OpenSearchDep = Annotated[OpenSearchClient, Depends(get_opensearch_client)]
+OpenSearchDependency = Annotated[OpenSearchClient, Depends(lambda request: request.app.state.opensearch_client)]
+EmbeddingsDependency = Annotated[EmbeddingClient, Depends(lambda request: request.app.state.embeddings_client)]

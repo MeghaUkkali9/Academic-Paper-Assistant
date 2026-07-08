@@ -1,8 +1,8 @@
 import logging
 from fastapi import APIRouter, HTTPException
 
-from src.schemas.api.search import HybridSearchRequest, SearchHit, SearchResponse
-from src.dependencies import EmbeddingsDep, OpenSearchDep
+from src.schemas.api.search_hybrid import HybridSearchRequest
+from src.dependencies import EmbeddingsDependency, OpenSearchDependency
 
 
 logger = logging.getLogger(__name__)
@@ -12,7 +12,9 @@ router = APIRouter(prefix="/hybrid-search", tags=["hybrid-search"])
 
 @router.post("/", response_model=SearchResponse)
 async def hybrid_search(
-    request: HybridSearchRequest, opensearch_client: OpenSearchDep, embeddings_service: EmbeddingsDep
+    request: HybridSearchRequest, 
+    opensearch_client: OpenSearchDependency, 
+    embeddings_service: EmbeddingsDependency
 ) -> SearchResponse:
     """
     Hybrid search endpoint supporting multiple search modes.
