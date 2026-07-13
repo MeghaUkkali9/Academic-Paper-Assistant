@@ -19,10 +19,10 @@ def ingest_papers(**context):
 
     execution_date = context.get("execution_date")
     if execution_date:
-        target_dt = execution_date - timedelta(days=1)
+        target_dt = execution_date - timedelta(days=5)
         target_date = target_dt.strftime("%Y%m%d")
     else:
-        yesterday = datetime.now() - timedelta(days=1)
+        yesterday = datetime.now() - timedelta(days=5)
         target_date = yesterday.strftime("%Y%m%d")
 
     logger.info(f"Fetching papers for date: {target_date}")

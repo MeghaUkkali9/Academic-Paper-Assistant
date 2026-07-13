@@ -21,3 +21,29 @@ class HybridSearchRequest(BaseModel):
                 "use_hybrid": True,
             }
         }
+
+class SearchHit(BaseModel):
+    arxiv_id: str
+    title: str
+    authors: Optional[str]
+    abstract: Optional[str]
+    published_date: Optional[str]
+    pdf_url: Optional[str]
+    score: float
+    highlights: Optional[dict] = None
+
+    chunk_text: Optional[str]
+    chunk_id: Optional[str]
+    section_name: Optional[str]
+     
+class SearchResponse(BaseModel):
+    query: str
+    total: int
+    hits: List[SearchHit]
+    size: int
+    from_: int = Field(alias="from")
+    search_mode: Optional[str]
+    error: Optional[str] = None
+
+    class Config:
+        populate_by_name = True

@@ -1,9 +1,8 @@
 import logging
 from fastapi import APIRouter, HTTPException
 
-from src.schemas.api.search_hybrid import HybridSearchRequest
+from src.schemas.api.search_hybrid import HybridSearchRequest, SearchResponse, SearchHit
 from src.dependencies import EmbeddingsDependency, OpenSearchDependency
-
 
 logger = logging.getLogger(__name__)
 

@@ -42,8 +42,6 @@ class PostgreSQLDatabase:
             inspector = inspect(self.engine)
             existing_tables = inspector.get_table_names()
 
-            logger.info(f"Existing tables: {existing_tables}")
-
             Base.metadata.create_all(bind=self.engine)
 
             new_inspector = inspect(self.engine)
