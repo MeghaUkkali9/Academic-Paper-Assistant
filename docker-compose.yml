@@ -104,6 +104,12 @@ services:
       context: ./airflow
       dockerfile: Dockerfile
     container_name: rag-airflow
+    deploy:
+      resources:
+        limits:
+          memory: 4g
+        reservations:
+          memory: 2g
     depends_on:
       postgres:
         condition: service_healthy

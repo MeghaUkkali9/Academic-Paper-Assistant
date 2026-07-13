@@ -1,6 +1,8 @@
 [project]
 name = "academic-paper-assistant"
-author = "Megha Ukkali"
+authors = [
+    { name = "Megha Ukkali" }
+]
 version = "0.1.0"
 description = "Academic Paper Assistant - AI Research Assistant"
 requires-python = ">=3.12"
@@ -14,8 +16,21 @@ dependencies = [
     "alembic>=1.13.3",
     "opensearch-py>=3.0.0",
     "requests>=2.32.3",
+    "docling>=2.43.0",
     "httpx>=0.28.1",
     "arxiv>=4.0.0",
+    "gradio>=4.0.0",
+    "sentence-transformers>=5.1.0",
+    "fastmcp>=2.0.0",
+    "langfuse>=4.0.0",
+    "redis>=6.4.0",
+    "langgraph>=0.2.0",
+    "langchain>=0.3.0",
+    "langchain-core>=0.3.0",
+    "langchain-community>=0.3.0",
+    "langchain-openai>=0.3.0",
+    "openai>=1.0.0",
+    "logfire[fastapi,httpx,redis,sqlalchemy]>=4.33.0",
 ]
 readme = "README.md"
 
