@@ -1,7 +1,7 @@
 import logging
 from pathlib import Path
 from typing import Optional
-
+import gc
 import pypdfium2 as pdfium
 from docling.datamodel.base_models import InputFormat
 from docling.datamodel.pipeline_options import PdfPipelineOptions
@@ -24,7 +24,7 @@ class DoclingParser:
         max_pages: int,
         max_file_size_mb: int,
         do_ocr: bool = False,
-        do_table_structure: bool = True,
+        do_table_structure: bool = False,
     ):
         pipeline_options = PdfPipelineOptions(
             do_table_structure=do_table_structure,
@@ -77,7 +77,7 @@ class DoclingParser:
         self,
         pdf_path: Path
     ) -> PdfContent:
-
+        result = None
         try:
             self._validate_pdf(pdf_path)
 
@@ -145,3 +145,7 @@ class DoclingParser:
         except Exception as e:
             logger.exception("Failed to parse PDF with Docling")
             raise PDFParsingException(f"Failed to parse PDF with Docling: {e}") from e
+        
+        finally:
+            result = None
+            gc.collect()
