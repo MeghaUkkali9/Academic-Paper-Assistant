@@ -63,7 +63,7 @@ class PDFParserSettings(BaseConfigSettings):
     max_pages: int = 30
     max_file_size_mb: int = 20
     do_ocr: bool = False
-    do_table_structure: bool = True
+    do_table_structure: bool = False
     
 class ChunkingSettings(BaseConfigSettings):
     model_config = SettingsConfigDict(
