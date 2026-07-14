@@ -1,11 +1,11 @@
 import logging
 from typing import Any, Dict, List, Optional
 
-import llm
-from llm import AsyncOpenAI
+import openai
+from openai import AsyncOpenAI
 from src.config import Settings
 from src.exceptions import OpenAIConnectionError, OpenAILLMException, OpenAITimeoutError
-from src.services.llm.prompts import RAGPromptBuilder, ResponseParser
+from src.services.openai_llm.prompts import RAGPromptBuilder, ResponseParser
 
 logger = logging.getLogger(__name__)
 
@@ -48,11 +48,11 @@ class OpenAILLMClient:
                 "message": "OpenAI API is reachable",
                 "model_count": len(list(models)),
             }
-        except llm.AuthenticationError as e:
+        except openai.AuthenticationError as e:
             raise OpenAILLMException(f"OpenAI authentication failed — check OPENAI_API_KEY: {e}")
-        except llm.APIConnectionError as e:
+        except openai.APIConnectionError as e:
             raise OpenAIConnectionError(f"Cannot reach OpenAI API: {e}")
-        except llm.APITimeoutError as e:
+        except openai.APITimeoutError as e:
             raise OpenAITimeoutError(f"OpenAI API timed out: {e}")
         except Exception as e:
             raise OpenAILLMException(f"OpenAI health check failed: {e}")
@@ -113,11 +113,11 @@ class OpenAILLMClient:
                 },
             }
 
-        except llm.AuthenticationError as e:
+        except openai.AuthenticationError as e:
             raise OpenAILLMException(f"OpenAI authentication failed: {e}")
-        except llm.APIConnectionError as e:
+        except openai.APIConnectionError as e:
             raise OpenAIConnectionError(f"Cannot reach OpenAI API: {e}")
-        except llm.APITimeoutError as e:
+        except openai.APITimeoutError as e:
             raise OpenAITimeoutError(f"OpenAI API timed out: {e}")
         except Exception as e:
             logger.error(f"Error generating RAG answer: {e}")
@@ -160,11 +160,11 @@ class OpenAILLMClient:
 
             yield {"response": "", "done": True, "full_response": full_text}
 
-        except llm.AuthenticationError as e:
+        except openai.AuthenticationError as e:
             raise OpenAILLMException(f"OpenAI authentication failed: {e}")
-        except llm.APIConnectionError as e:
+        except openai.APIConnectionError as e:
             raise OpenAIConnectionError(f"Cannot reach OpenAI API: {e}")
-        except llm.APITimeoutError as e:
+        except openai.APITimeoutError as e:
             raise OpenAITimeoutError(f"OpenAI API timed out: {e}")
         except Exception as e:
             logger.error(f"Error in streaming generation: {e}")

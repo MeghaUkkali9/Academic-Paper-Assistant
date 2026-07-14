@@ -16,8 +16,7 @@ class RAGPromptBuilder:
         self.system_prompt = self._load_system_prompt()
 
     def _load_system_prompt(self) -> str:
-        """Load the system prompt from the text file.
-        """
+        """Load the system prompt from the text file."""
         prompt_file = self.prompts_dir / "rag_system.txt"
         if not prompt_file.exists():
             # Fallback to default prompt if file doesn't exist
@@ -29,17 +28,14 @@ class RAGPromptBuilder:
         return prompt_file.read_text().strip()
 
     def create_rag_prompt(self, query: str, chunks: List[Dict[str, Any]]) -> str:
-        """Create a RAG prompt with query and retrieved chunks.
-        """
+        """Create a RAG prompt with query and retrieved chunks."""
         prompt = f"{self.system_prompt}\n\n"
         prompt += "### Context from Papers:\n\n"
 
         for i, chunk in enumerate(chunks, 1):
-            # Get the actual chunk text
             chunk_text = chunk.get("chunk_text", chunk.get("content", ""))
             arxiv_id = chunk.get("arxiv_id", "")
 
-            # Only include minimal metadata - just arxiv_id for citation
             prompt += f"[{i}. arXiv:{arxiv_id}]\n"
             prompt += f"{chunk_text}\n\n"
 
@@ -51,11 +47,9 @@ class RAGPromptBuilder:
         return prompt
 
     def create_structured_prompt(self, query: str, chunks: List[Dict[str, Any]]) -> Dict[str, Any]:
-        """Create a prompt for Openai with structured output format.
-        """
+        """Create a prompt for Openai with structured output format."""
         prompt_text = self.create_rag_prompt(query, chunks)
 
-        # Return prompt with Pydantic model schema for structured output
         return {
             "prompt": prompt_text,
             "format": RAGResponse.model_json_schema(),
@@ -69,29 +63,24 @@ class ResponseParser:
     def parse_structured_response(response: str) -> Dict[str, Any]:
         """Parse a structured response from Open."""
         try:
-            # Try to parse as JSON and validate with Pydantic
             parsed_json = json.loads(response)
             validated_response = RAGResponse(**parsed_json)
             return validated_response.model_dump()
         except (json.JSONDecodeError, ValidationError):
-            # Fallback: try to extract JSON from the response
             return ResponseParser._extract_json_fallback(response)
 
     @staticmethod
     def _extract_json_fallback(response: str) -> Dict[str, Any]:
         """Extract JSON from response text as fallback."""
-        # Try to find JSON in the response
         json_match = re.search(r"\{.*\}", response, re.DOTALL)
         if json_match:
             try:
                 parsed = json.loads(json_match.group())
-                # Validate with Pydantic, using defaults for missing fields
                 validated = RAGResponse(**parsed)
                 return validated.model_dump()
             except (json.JSONDecodeError, ValidationError):
                 pass
 
-        # Final fallback: return response as plain text
         return {
             "answer": response,
             "sources": [],

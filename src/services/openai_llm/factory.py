@@ -1,7 +1,7 @@
 from functools import lru_cache
 
 from src.config import get_settings
-from src.services.llm.client import OpenAILLMClient
+from src.services.openai_llm.client import OpenAILLMClient
 
 
 @lru_cache(maxsize=1)

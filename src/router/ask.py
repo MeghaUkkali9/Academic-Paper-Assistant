@@ -29,7 +29,6 @@ async def _prepare_chunks_and_sources(
             query_embedding = None
             search_mode = "bm25"
 
-    # Retrieve top-k chunks
     logger.info(f"Retrieving top {request.top_k} chunks for query: '{request.query}'")
 
     search_results = opensearch_client.search(
@@ -41,15 +40,13 @@ async def _prepare_chunks_and_sources(
         use_hybrid=request.use_hybrid and query_embedding is not None,
         min_score=0.0,
     )
-
-    # Extract chunks with minimal data for LLM
+    
     chunks = []
-    sources_set = set()  # Use set to automatically handle duplicates
+    sources_set = set() 
 
     for hit in search_results.get("hits", []):
         arxiv_id = hit.get("arxiv_id", "")
 
-        # Build minimal chunk for LLM (only content + arxiv_id)
         chunk_data = {
             "arxiv_id": arxiv_id,
             "chunk_text": hit.get("chunk_text", hit.get("abstract", "")),
@@ -62,7 +59,6 @@ async def _prepare_chunks_and_sources(
             pdf_url = f"https://arxiv.org/pdf/{arxiv_id_clean}.pdf"
             sources_set.add(pdf_url)
 
-    # Convert set back to list for consistent return type
     sources = list(sources_set)
 
     return chunks, sources, search_mode
@@ -80,7 +76,6 @@ async def ask_question_stream(
         start_time = time.time()
 
         try:
-            # Retrieve chunks
             chunks, sources, _ = await _prepare_chunks_and_sources(
                 request, opensearch_client, embeddings_service
             )
@@ -89,21 +84,20 @@ async def ask_question_stream(
                 yield f"data: {json.dumps({'answer': 'No relevant information found.', 'sources': [], 'done': True})}\n\n"
                 return
 
-            # Send metadata first
             search_mode = "bm25" if not request.use_hybrid else "hybrid"
             metadata_response = {"sources": sources, "chunks_used": len(chunks), "search_mode": search_mode}
             yield f"data: {json.dumps(metadata_response)}\n\n"
 
-            # Build prompt
-            from src.services.llm.prompts import RAGPromptBuilder
+            from src.services.openai_llm.prompts import RAGPromptBuilder
 
             prompt_builder = RAGPromptBuilder()
             final_prompt = prompt_builder.create_rag_prompt(request.query, chunks)
 
-            # Stream generation
             full_response = ""
             async for chunk in llm_client.generate_rag_answer_stream(
-                query=request.query, chunks=chunks, model=request.model
+                query=request.query, 
+                chunks=chunks, 
+                model=request.model
             ):
                 if chunk.get("response"):
                     text_chunk = chunk["response"]
@@ -121,5 +115,10 @@ async def ask_question_stream(
             yield f"data: {json.dumps({'error': str(e)})}\n\n"
 
     return StreamingResponse(
-        generate_stream(), media_type="text/plain", headers={"Cache-Control": "no-cache", "Connection": "keep-alive"}
+        generate_stream(), 
+        media_type="text/plain", 
+        headers={
+            "Cache-Control": "no-cache", 
+            "Connection": "keep-alive"
+        }
     )

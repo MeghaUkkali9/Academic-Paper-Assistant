@@ -42,7 +42,20 @@ async def stream_response(
         async with httpx.AsyncClient(timeout=60.0) as client:
             async with client.stream("POST", url, json=payload, headers={"Accept": "text/plain"}) as response:
                 if response.status_code != 200:
-                    yield f"Error: API returned status {response.status_code}"
+                    error_text = await response.aread()
+
+                    try:
+                        error = json.loads(error_text)
+                        yield (
+                            f"Error: API returned status {response.status_code}\n\n"
+                            f"{json.dumps(error, indent=2)}"
+                        )
+                    except Exception:
+                        yield (
+                            f"Error: API returned status {response.status_code}\n\n"
+                            f"{error_text.decode(errors='ignore')}"
+                        )
+
                     return
 
                 current_answer = ""

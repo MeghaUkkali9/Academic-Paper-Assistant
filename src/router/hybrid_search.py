@@ -8,7 +8,6 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/hybrid-search", tags=["hybrid-search"])
 
-
 @router.post("/", response_model=SearchResponse)
 async def hybrid_search(
     request: HybridSearchRequest, 
