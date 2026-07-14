@@ -61,3 +61,12 @@ class PDFCacheException(Exception):
     
 class EmbeddingGenerationException(Exception):
     """Exception raised for not matching exact size of chunks"""
+    
+class OpenAILLMException(Exception):
+    """Base exception for OpenAI LLM errors."""
+
+class OpenAIConnectionError(OpenAILLMException):
+    """Raised when the OpenAI API cannot be reached."""
+
+class OpenAITimeoutError(OpenAILLMException):
+    """Raised when the OpenAI API times out."""
