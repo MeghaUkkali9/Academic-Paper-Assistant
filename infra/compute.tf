@@ -17,6 +17,7 @@ resource "aws_instance" "this" {
   subnet_id              = aws_subnet.this.id
   vpc_security_group_ids = [aws_security_group.this.id]
   key_name               = data.aws_key_pair.this.key_name
+  iam_instance_profile   = aws_iam_instance_profile.ssm.name
   user_data              = file("${path.module}/user-data.sh")
 
   # user_data only runs on first boot; don't replace a running instance just
