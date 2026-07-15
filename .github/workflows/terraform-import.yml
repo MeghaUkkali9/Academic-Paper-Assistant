@@ -1,0 +1,48 @@
+name: Terraform Import (one-time)
+
+# Manually triggered only. Adopts the already-running AWS resources (created
+# by hand before this repo had infra-as-code) into Terraform state so that
+# infra.yml's plan/apply never tries to recreate or destroy them.
+#
+# Safe to re-run: `terraform import` no-ops if a resource is already in state.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: infra
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ap-southeast-2
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.9.8"
+
+      - run: terraform init
+
+      # Each import no-ops (exit 0 with a notice) if the resource is already
+      # in state, so this whole job is safe to re-run.
+      - name: Import existing resources
+        run: |
+          terraform import aws_vpc.this vpc-085d9ed5d4f0746b7 || true
+          terraform import aws_subnet.this subnet-0e7961f246935ef40 || true
+          terraform import aws_internet_gateway.this igw-0c635e3da324db12c || true
+          terraform import aws_route_table.this rtb-05f207ac263ac49d1 || true
+          terraform import aws_route_table_association.this subnet-0e7961f246935ef40/rtb-05f207ac263ac49d1 || true
+          terraform import aws_security_group.this sg-0d1abf8a2ded7aaa1 || true
+          terraform import aws_instance.this i-021131425d41352f9 || true
+
+      - name: Show plan after import (should be near-empty)
+        run: terraform plan

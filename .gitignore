@@ -148,6 +148,14 @@ activemq-data/
 # SageMath parsed files
 *.sage.py
 
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+tfplan
+crash.log
+
 # Environments
 .env
 .envrc

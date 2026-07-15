@@ -1,0 +1,51 @@
+name: Deploy
+
+# Ships app code to the already-running EC2 instance. Does not touch
+# infrastructure — see infra.yml for that. Excludes infra/** so a Terraform-only
+# change doesn't also trigger an app redeploy.
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - "infra/**"
+      - "**.md"
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ap-southeast-2
+
+      - name: Look up instance public IP
+        id: instance
+        run: |
+          IP=$(aws ec2 describe-instances \
+            --filters "Name=tag:Name,Values=academic-paper-assistant" "Name=instance-state-name,Values=running" \
+            --query "Reservations[0].Instances[0].PublicIpAddress" --output text)
+          echo "ip=$IP" >> "$GITHUB_OUTPUT"
+
+      - name: Deploy over SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ steps.instance.outputs.ip }}
+          username: ubuntu
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            set -e
+            cd ~/Academic-Paper-Assistant
+            git pull origin main
+            sudo docker compose up -d --build api
+            sudo systemctl restart gradio-app
+
+      - name: Health check
+        run: |
+          sleep 15
+          curl -sf "http://${{ steps.instance.outputs.ip }}:8000/api/v1/health"
+          curl -sf -o /dev/null "http://${{ steps.instance.outputs.ip }}:7861"
