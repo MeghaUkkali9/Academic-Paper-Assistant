@@ -51,7 +51,7 @@ app = FastAPI(
 
 @app.get("/api/v1/health")
 def health():
-    return {"status": "ok"}
+    return {"status": "ok", "version": app.version}
 
 app.include_router(user_router)
 app.include_router(hybrid_search_router, prefix="/api/v1")
