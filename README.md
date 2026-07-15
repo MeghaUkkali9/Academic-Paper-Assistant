@@ -157,6 +157,20 @@ The flow in one line:
 Are we ready? → Fetch papers → Store & index them → Report what happened → Clean up.
 
 
+## AWS Deployment
+
+The app also runs on a single EC2 instance (`t3.large`) in `ap-southeast-2`, provisioned via Terraform (`infra/`) and kept in sync by GitHub Actions — see `infra/README.md` for how the CI/CD pipeline works. Airflow isn't part of this deployment (its image needs far more disk than this instance has to spare); new papers are indexed manually until that's revisited.
+
+### Costs (ap-southeast-2 pricing)
+
+| Item | Rate | Always-on | Stopped |
+|---|---|---|---|
+| EC2 `t3.large` | $0.1056/hr | ~$76/mo | $0 |
+| EBS gp3, 40GB | $0.096/GB-mo | $3.84/mo | $3.84/mo |
+| **Total** | | **~$80/mo** | **~$3.84/mo** |
+
+Data transfer out is effectively free at this scale (well under the free-tier allowance). Stopping the instance when not in use (`aws ec2 stop-instances`) cuts the bill to just storage — note the public IP isn't an Elastic IP, so it changes on the next start.
+
 ## Evaluation
 
 We use [RAGAS](https://docs.ragas.io/) to measure answer quality, independent of manual spot-checking.
