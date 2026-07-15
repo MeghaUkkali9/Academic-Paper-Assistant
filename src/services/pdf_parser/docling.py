@@ -1,10 +1,15 @@
 import logging
+import os
 from pathlib import Path
 from typing import Optional
 import gc
 import pypdfium2 as pdfium
 from docling.datamodel.base_models import InputFormat
-from docling.datamodel.pipeline_options import PdfPipelineOptions
+from docling.datamodel.pipeline_options import (
+    AcceleratorDevice,
+    AcceleratorOptions,
+    PdfPipelineOptions,
+)
 from docling.document_converter import DocumentConverter, PdfFormatOption
 
 from src.exceptions import PDFParsingException, PDFValidationError
@@ -26,9 +31,22 @@ class DoclingParser:
         do_ocr: bool = False,
         do_table_structure: bool = False,
     ):
+        artifacts_path = os.environ.get(
+            "DOCLING_ARTIFACTS_PATH", "/app/.docling-models"
+        )
+        if not os.path.isdir(artifacts_path):
+            # Falls back to Docling's default download-and-cache behavior
+            # (e.g. local dev outside the container image).
+            artifacts_path = None
+
         pipeline_options = PdfPipelineOptions(
             do_table_structure=do_table_structure,
             do_ocr=do_ocr,
+            artifacts_path=artifacts_path,
+            enable_remote_services=False,
+            accelerator_options=AcceleratorOptions(
+                num_threads=4, device=AcceleratorDevice.CPU
+            ),
         )
 
         self._converter = DocumentConverter(
@@ -41,6 +59,17 @@ class DoclingParser:
 
         self.max_pages = max_pages
         self.max_file_size_bytes = max_file_size_mb * 1024 * 1024
+
+        self._warm_up()
+
+    def _warm_up(self) -> None:
+        """Force model weights to load at construction time instead of on the first request."""
+        blank_pdf = Path(__file__).parent / "_warmup.pdf"
+        try:
+            self._converter.convert(str(blank_pdf))
+            logger.info("Docling models warmed up successfully.")
+        except Exception:
+            logger.exception("Docling warm-up conversion failed; continuing anyway.")
 
     def _validate_pdf(self, pdf_path: Path) -> None:
         if not pdf_path.exists():

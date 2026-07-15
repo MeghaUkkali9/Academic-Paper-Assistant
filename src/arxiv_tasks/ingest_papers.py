@@ -1,7 +1,7 @@
 import asyncio
 import logging
 from datetime import datetime, timedelta
-from src.arxiv_tasks.common import get_services
+from src.arxiv_tasks.common import get_database, get_paper_fetcher
 
 logger = logging.getLogger(__name__)
 
@@ -27,10 +27,11 @@ def ingest_papers(**context):
 
     logger.info(f"Fetching papers for date: {target_date}")
 
-    services = get_services()
-    
-    with services.database.get_session() as session:
-        results = asyncio.run(services.paper_fetcher.process_papers(
+    database = get_database()
+    paper_fetcher = get_paper_fetcher()
+
+    with database.get_session() as session:
+        results = asyncio.run(paper_fetcher.process_papers(
             from_date=target_date,
             to_date=target_date,
             db_session=session,

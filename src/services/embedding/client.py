@@ -1,4 +1,5 @@
 from typing import List
+import asyncio
 import httpx
 import logging
 
@@ -13,37 +14,59 @@ class EmbeddingClient:
         self._settings = settings.embedding
         
     async def _embed(
-        self, 
-        texts: List[str], 
+        self,
+        texts: List[str],
         task: str
     ) -> EmbeddingResponse:
-        try:
-            headers = {
-                    "Authorization": f"Bearer {self._settings.jina_api_key}",
-                    "Content-Type": self._settings.content_type,
-                }
-            request_data = EmbeddingRequest(
-                model=self._settings.embedding_model,
-                task=task,
-                dimensions=self._settings.dimensions, 
-                input=texts,
-            )
-            async with httpx.AsyncClient(timeout = self._settings.timeout_seconds) as client:
-                response = await client.post(
-                    f"{self._settings.base_url}", 
-                    headers = headers,
-                    json = request_data.model_dump()
-                )
-                response.raise_for_status()
-                    
-            result = EmbeddingResponse.model_validate(response.json())
-            return result 
-        except httpx.HTTPStatusError as httpstatuserror:
-            logger.exception(f"Embedding API failed. Status={httpstatuserror.response.status_code} Response={httpstatuserror.response.text}")
-            raise
-        except Exception:
-            logger.exception("Unexpected error while generating embeddings.")
-            raise
+        headers = {
+                "Authorization": f"Bearer {self._settings.jina_api_key}",
+                "Content-Type": self._settings.content_type,
+            }
+        request_data = EmbeddingRequest(
+            model=self._settings.embedding_model,
+            task=task,
+            dimensions=self._settings.dimensions,
+            input=texts,
+        )
+
+        attempt = 0
+        while True:
+            try:
+                async with httpx.AsyncClient(timeout = self._settings.timeout_seconds) as client:
+                    response = await client.post(
+                        f"{self._settings.base_url}",
+                        headers = headers,
+                        json = request_data.model_dump()
+                    )
+                    response.raise_for_status()
+
+                return EmbeddingResponse.model_validate(response.json())
+            except httpx.HTTPStatusError as httpstatuserror:
+                status_code = httpstatuserror.response.status_code
+                logger.error(f"Embedding API failed. Status={status_code} Response={httpstatuserror.response.text}")
+
+                if status_code == 429 and attempt < self._settings.max_retries_on_rate_limit:
+                    wait_seconds = self._get_retry_wait_seconds(httpstatuserror.response, attempt)
+                    logger.warning(f"Rate limited by Jina, retrying in {wait_seconds:.0f}s (attempt {attempt + 1}/{self._settings.max_retries_on_rate_limit})")
+                    await asyncio.sleep(wait_seconds)
+                    attempt += 1
+                    continue
+
+                raise
+            except Exception:
+                logger.exception("Unexpected error while generating embeddings.")
+                raise
+
+    def _get_retry_wait_seconds(self, response: httpx.Response, attempt: int) -> float:
+        """Wait time for a rate-limited retry: honor Retry-After if present, else back off."""
+        retry_after = response.headers.get("Retry-After")
+        if retry_after is not None:
+            try:
+                return float(retry_after)
+            except ValueError:
+                pass
+
+        return self._settings.retry_backoff_seconds * (attempt + 1)
     
     async def embed_query(self, query: str) -> List[float]:
         """Embed query"""
@@ -84,9 +107,11 @@ class EmbeddingClient:
             ]
             
             embeddings.extend(batch_embeddings)
-            
-        logger.info(f"Successfully embedded {len(texts)} passages")      
-        return embeddings 
+
+            await asyncio.sleep(self._settings.rate_limit_delay_seconds)
+
+        logger.info(f"Successfully embedded {len(texts)} passages")
+        return embeddings
         
         
     

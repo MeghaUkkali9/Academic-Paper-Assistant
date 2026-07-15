@@ -13,18 +13,20 @@ class PDFParserService:
     """Main PDF parsing service using Docling only."""
 
     def __init__(
-        self, 
-        max_pages: int, 
-        max_file_size_mb: int, 
-        do_ocr: bool = False, 
-        do_table_structure: bool = True
+        self,
+        max_pages: int,
+        max_file_size_mb: int,
+        do_ocr: bool = False,
+        do_table_structure: bool = True,
+        max_concurrent_parses: int = 2,
     ):
         self.docling_parser = DoclingParser(
-            max_pages=max_pages, 
-            max_file_size_mb=max_file_size_mb, 
-            do_ocr=do_ocr, 
+            max_pages=max_pages,
+            max_file_size_mb=max_file_size_mb,
+            do_ocr=do_ocr,
             do_table_structure=do_table_structure
         )
+        self._semaphore = asyncio.Semaphore(max_concurrent_parses)
 
     async def parse_pdf(
         self,
@@ -35,10 +37,11 @@ class PDFParserService:
             raise PDFValidationError(f"PDF file not found: {pdf_path}")
 
         try:
-            return await asyncio.to_thread(
-                self.docling_parser.parse_pdf,
-                pdf_path
-            )
+            async with self._semaphore:
+                return await asyncio.to_thread(
+                    self.docling_parser.parse_pdf,
+                    pdf_path
+                )
 
         except (PDFParsingException, PDFValidationError):
             raise

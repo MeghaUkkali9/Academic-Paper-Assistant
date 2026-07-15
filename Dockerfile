@@ -27,4 +27,6 @@ COPY --from=base /app /app
 
 ENV PATH="/app/.venv/bin:$PATH"
 
+RUN docling-tools models download layout tableformer --output-dir /app/.docling-models
+
 CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1"]

@@ -1,6 +1,7 @@
 import logging
 from typing import List, Dict, Any, Optional
 from opensearchpy import OpenSearch, helpers
+from opensearchpy.exceptions import NotFoundError
 from src.schemas.indexing.index_paper import ChunkWithEmbedding
 from src.config import Settings
 from src.services.opensearch.query import QueryBuilder
@@ -35,7 +36,96 @@ class OpenSearchClient:
         
     def get_cluster_health(self):
         return self.client.cluster.health()
-    
+
+    def setup_indices(self, force: bool = False) -> Dict[str, bool]:
+        """Create the hybrid search index and RRF pipeline if they don't already exist."""
+        return {
+            "hybrid_index": self._create_hybrid_index(force),
+            "rrf_pipeline": self._create_rrf_pipeline(force),
+        }
+
+    def _create_hybrid_index(self, force: bool = False) -> bool:
+        """Create the hybrid chunk index. Returns True if it was (re)created."""
+        try:
+            if force and self.client.indices.exists(index=self.index_name):
+                self.client.indices.delete(index=self.index_name)
+                logger.info(f"Deleted existing hybrid index: {self.index_name}")
+
+            if not self.client.indices.exists(index=self.index_name):
+                self.client.indices.create(index=self.index_name, body=self._build_index_mapping())
+                logger.info(f"Created hybrid index: {self.index_name}")
+                return True
+
+            logger.info(f"Hybrid index already exists: {self.index_name}")
+            return False
+        except Exception as e:
+            # Handle race condition when multiple workers start simultaneously:
+            # all check exists() -> False, all try to create, only one succeeds.
+            if "resource_already_exists_exception" in str(e):
+                logger.info(f"Hybrid index already exists (created by another worker): {self.index_name}")
+                return False
+            logger.error(f"Error creating hybrid index: {e}")
+            raise
+
+    def _create_rrf_pipeline(self, force: bool = False) -> bool:
+        """Create the RRF search pipeline. Returns True if it was (re)created."""
+        pipeline_id = HYBRID_RECIPROCALRANKFUSION_PIPELINE["id"]
+        try:
+            pipeline_exists = True
+            try:
+                self.client.search_pipeline.get(id=pipeline_id)
+            except NotFoundError:
+                pipeline_exists = False
+
+            if force or not pipeline_exists:
+                pipeline_body = {k: v for k, v in HYBRID_RECIPROCALRANKFUSION_PIPELINE.items() if k != "id"}
+                self.client.search_pipeline.put(id=pipeline_id, body=pipeline_body)
+                logger.info(f"Created RRF search pipeline: {pipeline_id}")
+                return True
+
+            logger.info(f"RRF pipeline already exists: {pipeline_id}")
+            return False
+        except Exception as e:
+            logger.error(f"Error creating RRF pipeline: {e}")
+            raise
+
+    def _build_index_mapping(self) -> Dict[str, Any]:
+        """Index settings and mapping for the hybrid chunk index."""
+        return {
+            "settings": {
+                "index": {
+                    "knn": True,
+                }
+            },
+            "mappings": {
+                "dynamic": "strict",
+                "properties": {
+                    "arxiv_id": {"type": "keyword"},
+                    "paper_id": {"type": "keyword"},
+                    "chunk_index": {"type": "integer"},
+                    "chunk_text": {"type": "text"},
+                    "chunk_word_count": {"type": "integer"},
+                    "start_char": {"type": "integer"},
+                    "end_char": {"type": "integer"},
+                    "section_title": {"type": "keyword"},
+                    "title": {"type": "text"},
+                    "authors": {"type": "text"},
+                    "abstract": {"type": "text"},
+                    "categories": {"type": "keyword"},
+                    "published_date": {"type": "date"},
+                    "embedding": {
+                        "type": "knn_vector",
+                        "dimension": self._settings.vector_dimension,
+                        "method": {
+                            "name": "hnsw",
+                            "space_type": self._settings.vector_space_type,
+                            "engine": "lucene",
+                        },
+                    },
+                },
+            },
+        }
+
     def delete_chunks(self, arxiv_id: str):
         try:
             response = self.client.delete_by_query(

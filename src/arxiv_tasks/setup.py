@@ -1,6 +1,6 @@
 import logging
 from sqlalchemy import text
-from src.arxiv_tasks.common import get_services
+from src.arxiv_tasks.common import get_database, get_opensearch_client
 
 logger = logging.getLogger(__name__)
 
@@ -65,12 +65,12 @@ def setup_environment() -> dict:
     """
     
     logger.info("Starting pre-flight checks...")
-    
-    servives = get_services()
-    
-    _check_database_connection(servives.database)
-    _check_opensearch_connection(servives.opensearch_client)
-    #_setup_search_indices(opensearch_client) 
+
+    opensearch_client = get_opensearch_client()
+
+    _check_database_connection(get_database())
+    _check_opensearch_connection(opensearch_client)
+    _setup_search_indices(opensearch_client)
     
     logger.info("Pre-flight checks completed successfully.")    
     

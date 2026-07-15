@@ -19,11 +19,15 @@ RUN apt-get update && \
         libxrender1 \
     && rm -rf /var/lib/apt/lists/*
 
+RUN mkdir -p /app/.docling-models && chown -R airflow:root /app
+
 USER airflow
 
 COPY requirements-airflow.txt /tmp/requirements-airflow.txt
 RUN pip install --no-cache-dir -r /tmp/requirements-airflow.txt \
     --constraint "${CONSTRAINT_URL}"
+
+RUN docling-tools models download layout tableformer --output-dir /app/.docling-models
 
 COPY --chown=airflow:airflow entrypoint.sh /entrypoint.sh
 USER root

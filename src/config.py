@@ -117,6 +117,9 @@ class EmbeddingSettings(BaseConfigSettings):
     embedding_query_retrival_task: str = "retrieval.query"
     dimensions: int = 1024
     embedding_batch_size:int = 100
+    rate_limit_delay_seconds: float = 3.0  # Delay between Jina API calls to avoid 429s
+    max_retries_on_rate_limit: int = 3
+    retry_backoff_seconds: float = 20.0  # Fallback wait when Jina omits Retry-After
     
 class Settings(BaseConfigSettings):
     app_version: str = "0.1.0"

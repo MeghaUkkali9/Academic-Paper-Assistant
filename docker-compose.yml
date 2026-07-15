@@ -79,6 +79,12 @@ services:
       timeout: 10s
       retries: 5
       start_period: 60s
+    deploy:
+      resources:
+        limits:
+          memory: 1g
+        reservations:
+          memory: 768m
     restart: unless-stopped
     networks:
       - rag-network
@@ -131,6 +137,12 @@ services:
       - ./src:/opt/airflow/src
     ports:
       - "8080:8080"
+    deploy:
+      resources:
+        limits:
+          memory: 2g
+        reservations:
+          memory: 1g
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
       interval: 30s
