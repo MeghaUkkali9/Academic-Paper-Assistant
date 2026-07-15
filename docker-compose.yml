@@ -16,11 +16,16 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 40s
+      start_period: 90s
+    deploy:
+      resources:
+        limits:
+          memory: 2g
+        reservations:
+          memory: 1g
     env_file:
       - .env
     environment:
-      - OPENSEARCH_HOST=http://opensearch:9200
       - OPENSEARCH__HOST=http://opensearch:9200
       - POSTGRES_DATABASE_URL=${POSTGRES_DATABASE_URL}
       - REDIS__HOST=redis
@@ -104,14 +109,10 @@ services:
       context: ./airflow
       dockerfile: Dockerfile
     container_name: rag-airflow
-    deploy:
-      resources:
-        limits:
-          memory: 4g
-        reservations:
-          memory: 2g
     depends_on:
       postgres:
+        condition: service_healthy
+      opensearch:
         condition: service_healthy
     env_file:
       - .env
@@ -119,7 +120,6 @@ services:
       - AIRFLOW_HOME=/opt/airflow
       - PYTHONPATH=/opt/airflow
       - POSTGRES_DATABASE_URL=${POSTGRES_DATABASE_URL}
-      - OPENSEARCH_HOST=http://opensearch:9200
       - OPENSEARCH__HOST=http://opensearch:9200
       - REDIS__HOST=redis
       - PYTHONWARNINGS=ignore::FutureWarning:airflow,ignore::DeprecationWarning:airflow
