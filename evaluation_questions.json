@@ -1,0 +1,70 @@
+[
+  {
+    "question": "What is the performance improvement achieved by optimizing memory management in the base agent across three long-horizon games?",
+    "expected_arxiv_id": "2607.01224v1"
+  },
+  {
+    "question": "What is the certified precision of Theoria on GPQA Diamond?",
+    "expected_arxiv_id": "2607.01223v1"
+  },
+  {
+    "question": "What framework is built to characterize the gap between LLM-generated ideas and human researchers' ideas?",
+    "expected_arxiv_id": "2607.01233v1"
+  },
+  {
+    "question": "What is the improvement in memory retention rate achieved by MHM-LRU on RULER-HQA at 896K tokens?",
+    "expected_arxiv_id": "2607.01523v1"
+  },
+  {
+    "question": "What are the three models in the Gemini family tested for their reliability as audio judges in the study?",
+    "expected_arxiv_id": "2607.07985v1"
+  },
+  {
+    "question": "What is the name of the framework presented in the paper for failure localization in LLM-based multi-agent systems?",
+    "expected_arxiv_id": "2607.07989v1"
+  },
+  {
+    "question": "What framework does the paper propose for robust and explainable 3D mode shape recognition?",
+    "expected_arxiv_id": "2607.01522v1"
+  },
+  {
+    "question": "What is the size of the SEFORA corpus in terms of drafts and instructor annotations?",
+    "expected_arxiv_id": "2607.00274v1"
+  },
+  {
+    "question": "What is the main hypothesis proposed in the paper regarding the roles of state and prediction in Transformers?",
+    "expected_arxiv_id": "2607.01218v1"
+  },
+  {
+    "question": "What is the range of pseudo-answer precision achieved by the Semi-CoT framework in the pilot experiments?",
+    "expected_arxiv_id": "2607.01511v1"
+  },
+  {
+    "question": "What mechanism is studied in the paper to maintain uncertainty in sparse federated optimization?",
+    "expected_arxiv_id": "2607.00275v1"
+  },
+  {
+    "question": "What method does the paper propose for calculating alternative priorities in pairwise comparisons?",
+    "expected_arxiv_id": "2607.10038v1"
+  },
+  {
+    "question": "What is the primary challenge faced by query intent detection models in e-commerce search systems as mentioned in the abstract?",
+    "expected_arxiv_id": "2607.01530v1"
+  },
+  {
+    "question": "What is the range of performance improvement achieved by incorporating prompt learning into state-of-the-art GNN models for crystal property prediction tasks?",
+    "expected_arxiv_id": "2607.08996v1"
+  },
+  {
+    "question": "What is the main objective of the formalization game described in the paper?",
+    "expected_arxiv_id": "2607.08986v1"
+  },
+  {
+    "question": "What are the five design rules proposed to ensure that research conducted by AI-driven systems is reliable, non-wasteful, transparent, and collaborative?",
+    "expected_arxiv_id": "2607.10508v1"
+  },
+  {
+    "question": "What is the micro-F1 score achieved by the best supervised policy, SFT-1+, on the full 15,761-code space?",
+    "expected_arxiv_id": "2607.11954v1"
+  }
+]

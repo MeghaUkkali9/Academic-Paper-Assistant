@@ -157,6 +157,29 @@ The flow in one line:
 Are we ready? → Fetch papers → Store & index them → Report what happened → Clean up.
 
 
+## Evaluation
+
+We use [RAGAS](https://docs.ragas.io/) to measure answer quality, independent of manual spot-checking.
+
+For every indexed paper, one factual question is generated from its abstract, run through the real retrieval + generation pipeline, and scored (reference-free, no hand-written ground truth needed):
+
+| Metric | Score | What it measures |
+|---|---|---|
+| Faithfulness | 0.98 | Is the answer grounded in the retrieved chunks (not hallucinated)? |
+| Answer Relevancy | 0.91 | Does the answer actually address the question asked? |
+| Context Precision | 1.00 | Are the retrieved chunks relevant to the question? |
+
+*(Last run: 17 questions, one per indexed paper — see `evaluation_results.csv` for the per-question breakdown.)*
+
+### Run it yourself
+
+```bash
+python3 evaluate_ragas.py
+```
+
+- First run generates `evaluation_questions.json` (one question per indexed paper) and caches it — delete the file to regenerate after indexing new papers.
+- Per-question scores are written to `evaluation_results.csv`.
+
 ## To access Arxiv API:
 https://info.arxiv.org/help/api/tou.html
 
