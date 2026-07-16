@@ -9,7 +9,13 @@ from src.services.opensearch.utils import build_pdf_sources
 
 logger = logging.getLogger(__name__)
 
-CITATION_PATTERN = re.compile(r"\[arXiv:([^\]]+)\]", re.IGNORECASE)
+# RAGPromptBuilder.create_rag_prompt labels context chunks as "[N. arXiv:id]"
+# (numbered), and the model mirrors that when citing — but inconsistently:
+# sometimes the full "[N. arXiv:id]", sometimes a bare "[N]" numbered
+# reference back to the same source without repeating the id. Both are
+# legitimate citations; BARE_CITATION_PATTERN catches the second form.
+CITATION_PATTERN = re.compile(r"\[(?:\d+\.\s*)?arXiv:([^\]]+)\]", re.IGNORECASE)
+BARE_CITATION_PATTERN = re.compile(r"\[\d+\]")
 
 ROUTE_SYSTEM_PROMPT = (
     "You decide whether a user question is in scope for an academic-paper research "
@@ -82,13 +88,14 @@ class AgentNodes:
         }
 
     async def retrieve(self, state: GraphState) -> dict:
-        query_embedding = await self.embedding_client.embed_query(state["query"])
+        use_hybrid = state["use_hybrid"]
+        query_embedding = await self.embedding_client.embed_query(state["query"]) if use_hybrid else None
         results = self.opensearch_client.search(
             query=state["query"],
             query_embedding=query_embedding,
             size=state["top_k"],
             categories=state["categories"],
-            use_hybrid=True,
+            use_hybrid=use_hybrid,
         )
         chunks = [
             {"arxiv_id": hit.get("arxiv_id", ""), "chunk_text": hit.get("chunk_text", hit.get("abstract", ""))}
@@ -97,7 +104,7 @@ class AgentNodes:
         logger.info(f"retrieve: query='{state['query'][:60]}' -> {len(chunks)} chunks")
         return {
             "retrieved_chunks": chunks,
-            "search_mode": "hybrid",
+            "search_mode": "hybrid" if use_hybrid else "bm25",
         }
 
     async def grade_documents(self, state: GraphState) -> dict:
@@ -106,7 +113,10 @@ class AgentNodes:
             return {"graded_chunks": []}
 
         structured_llm = self.chat_model.with_structured_output(ChunkGrading)
-        numbered_chunks = "\n\n".join(f"[{i}] {chunk['chunk_text'][:1000]}" for i, chunk in enumerate(chunks))
+        # Full chunk text, not truncated — a truncated view can hide the
+        # specific detail (a figure, a percentage) that makes a chunk
+        # relevant, causing the grader to falsely reject it.
+        numbered_chunks = "\n\n".join(f"[{i}] {chunk['chunk_text']}" for i, chunk in enumerate(chunks))
         grading: ChunkGrading = await structured_llm.ainvoke(
             [
                 {"role": "system", "content": GRADE_SYSTEM_PROMPT},
@@ -158,8 +168,10 @@ class AgentNodes:
         answer = state["answer"]
         valid_ids = {chunk["arxiv_id"] for chunk in state["graded_chunks"] if chunk.get("arxiv_id")}
         cited_ids = set(CITATION_PATTERN.findall(answer))
+        has_explicit_citation = bool(cited_ids & valid_ids)
+        has_bare_citation = bool(BARE_CITATION_PATTERN.search(answer))
 
-        if valid_ids and not (cited_ids & valid_ids):
+        if valid_ids and not (has_explicit_citation or has_bare_citation):
             answer = f"{answer}\n\n*Note: this answer could not be verified against a specific citation.*"
 
         return {"answer": answer}

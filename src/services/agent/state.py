@@ -10,6 +10,7 @@ class GraphState(TypedDict):
     top_k: int
     categories: Optional[List[str]]
     model: str
+    use_hybrid: bool
 
     retrieved_chunks: List[Dict[str, Any]]
     graded_chunks: List[Dict[str, Any]]

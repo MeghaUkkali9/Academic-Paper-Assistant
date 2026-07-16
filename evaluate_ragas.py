@@ -1,8 +1,9 @@
 """Evaluate the RAG pipeline with RAGAS (faithfulness, answer relevancy, context precision).
 
 Usage:
-    python3 evaluate_ragas.py                # hybrid search (default)
-    python3 evaluate_ragas.py --mode bm25     # BM25-only, for comparison
+    python3 evaluate_ragas.py                  # hybrid search (default)
+    python3 evaluate_ragas.py --mode bm25       # BM25-only, for comparison
+    python3 evaluate_ragas.py --mode agentic    # agentic RAG (routing/grading/retry/groundedness)
 
 On first run, generates one eval question per indexed paper and saves them to
 evaluation_questions.json for reuse/review (shared across modes, so the
@@ -29,6 +30,7 @@ from ragas.metrics import Faithfulness, LLMContextPrecisionWithoutReference, Res
 
 from src.config import get_settings
 from src.database.factory import create_database
+from src.services.agent.factory import create_rag_agent
 from src.services.embedding.factory import get_embedding_client
 from src.services.openai_llm.factory import make_openai_llm_client
 from src.services.opensearch.factory import get_opensearch_client
@@ -93,11 +95,46 @@ async def run_rag(
     return result["answer"], contexts
 
 
+async def run_agentic_rag(question: str, graph, use_hybrid: bool) -> tuple[str, list[str], dict]:
+    """Run a question through the compiled agentic graph. Returns (answer,
+    contexts, stats) where stats carries the graph's own decision metadata
+    (retrieval attempts, grounded, guardrail_triggered) for comparison
+    against RAGAS's independent judgment of the same answer."""
+    initial_state = {
+        "query": question,
+        "original_query": question,
+        "top_k": TOP_K,
+        "categories": None,
+        "model": "gpt-4o-mini",
+        "use_hybrid": use_hybrid,
+        "retrieved_chunks": [],
+        "graded_chunks": [],
+        "sources": [],
+        "search_mode": "bm25",
+        "retrieval_retry_count": 0,
+        "generation_retry_count": 0,
+        "in_scope": True,
+        "is_grounded": False,
+        "answer": "",
+        "guardrail_reason": None,
+    }
+
+    final_state = await graph.ainvoke(initial_state, config={"recursion_limit": 25})
+    contexts = [c["chunk_text"] for c in final_state["graded_chunks"]]
+    stats = {
+        "retrieval_attempts": final_state["retrieval_retry_count"] + 1,
+        "chunks_graded_relevant": len(final_state["graded_chunks"]),
+        "graph_grounded": final_state["is_grounded"],
+        "guardrail_triggered": final_state["guardrail_reason"],
+    }
+    return final_state["answer"], contexts, stats
+
+
 async def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--mode", choices=["hybrid", "bm25"], default="hybrid")
+    parser.add_argument("--mode", choices=["hybrid", "bm25", "agentic"], default="hybrid")
     args = parser.parse_args()
-    use_hybrid = args.mode == "hybrid"
+    use_hybrid = args.mode != "bm25"  # both hybrid and agentic modes use hybrid retrieval
     results_path = Path(__file__).parent / f"evaluation_results_{args.mode}.csv"
 
     settings = get_settings()
@@ -105,6 +142,7 @@ async def main():
     opensearch_client = get_opensearch_client()
     embedding_client = get_embedding_client()
     llm_client = make_openai_llm_client()
+    rag_agent = create_rag_agent(opensearch_client, embedding_client, llm_client, settings) if args.mode == "agentic" else None
 
     if QUESTIONS_PATH.exists():
         questions = json.loads(QUESTIONS_PATH.read_text())
@@ -122,10 +160,17 @@ async def main():
         print(f"Saved questions to {QUESTIONS_PATH}")
 
     samples = []
+    agentic_stats = []
     for q in questions:
         question = q["question"]
         print(f"Running RAG for: {question}")
-        answer, contexts = await run_rag(question, opensearch_client, embedding_client, llm_client, use_hybrid)
+
+        if args.mode == "agentic":
+            answer, contexts, stats = await run_agentic_rag(question, rag_agent, use_hybrid)
+            agentic_stats.append(stats)
+        else:
+            answer, contexts = await run_rag(question, opensearch_client, embedding_client, llm_client, use_hybrid)
+
         samples.append(
             {
                 "user_input": question,
@@ -150,6 +195,24 @@ async def main():
     print(result)
 
     df = result.to_pandas()
+
+    if agentic_stats:
+        for key in ("retrieval_attempts", "chunks_graded_relevant", "graph_grounded", "guardrail_triggered"):
+            df[key] = [s[key] for s in agentic_stats]
+
+        avg_attempts = sum(s["retrieval_attempts"] for s in agentic_stats) / len(agentic_stats)
+        retried = sum(1 for s in agentic_stats if s["retrieval_attempts"] > 1)
+        rejected = sum(1 for s in agentic_stats if s["guardrail_triggered"])
+        graph_grounded_count = sum(1 for s in agentic_stats if s["graph_grounded"])
+        ragas_grounded_count = sum(1 for v in df["faithfulness"] if v >= 0.8)
+
+        print("\n=== Agentic graph stats ===")
+        print(f"Avg retrieval attempts: {avg_attempts:.2f}")
+        print(f"Questions that needed a retry: {retried}/{len(agentic_stats)}")
+        print(f"Questions rejected by guardrails: {rejected}/{len(agentic_stats)}")
+        print(f"Graph's own groundedness check said grounded: {graph_grounded_count}/{len(agentic_stats)}")
+        print(f"RAGAS faithfulness >= 0.8 (independent judge): {ragas_grounded_count}/{len(agentic_stats)}")
+
     df.to_csv(results_path, index=False)
     print(f"\nPer-question results saved to {results_path}")
 

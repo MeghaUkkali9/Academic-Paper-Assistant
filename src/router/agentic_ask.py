@@ -25,6 +25,7 @@ async def ask_question_agentic(
         "top_k": request.top_k,
         "categories": request.categories,
         "model": request.model,
+        "use_hybrid": request.use_hybrid,
         "retrieved_chunks": [],
         "graded_chunks": [],
         "sources": [],

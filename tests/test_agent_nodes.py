@@ -27,6 +27,7 @@ def base_state(**overrides) -> dict:
         "top_k": 3,
         "categories": None,
         "model": "gpt-4o-mini",
+        "use_hybrid": True,
         "retrieved_chunks": [],
         "graded_chunks": [],
         "sources": [],
@@ -87,6 +88,19 @@ class TestRetrieve:
         assert result["search_mode"] == "hybrid"
         opensearch_client.search.assert_called_once()
         assert opensearch_client.search.call_args.kwargs["use_hybrid"] is True
+
+    async def test_use_hybrid_false_skips_embedding_and_uses_bm25(self):
+        opensearch_client = MagicMock()
+        opensearch_client.search.return_value = {"hits": []}
+        embedding_client = SimpleNamespace(embed_query=AsyncMock())
+        nodes = AgentNodes(opensearch_client, embedding_client, None, None)
+
+        result = await nodes.retrieve(base_state(use_hybrid=False))
+
+        assert result["search_mode"] == "bm25"
+        embedding_client.embed_query.assert_not_called()
+        assert opensearch_client.search.call_args.kwargs["use_hybrid"] is False
+        assert opensearch_client.search.call_args.kwargs["query_embedding"] is None
 
 
 class TestGradeDocuments:
@@ -168,6 +182,30 @@ class TestEnforceCitations:
         nodes = AgentNodes(None, None, None, None)
         chunks = [{"arxiv_id": "2607.00001v1", "chunk_text": "x"}]
         answer = "Transformers use self-attention [arXiv:2607.00001v1]."
+
+        result = await nodes.enforce_citations(base_state(answer=answer, graded_chunks=chunks))
+
+        assert result["answer"] == answer
+
+    async def test_numbered_citation_format_from_prompt_is_recognized(self):
+        # This is the actual format RAGPromptBuilder.create_rag_prompt labels
+        # context chunks with ("[N. arXiv:id]"), which the model mirrors —
+        # not the bare "[arXiv:id]" form the system prompt asks for.
+        nodes = AgentNodes(None, None, None, None)
+        chunks = [{"arxiv_id": "2607.00001v1", "chunk_text": "x"}]
+        answer = "Transformers use self-attention [1. arXiv:2607.00001v1]."
+
+        result = await nodes.enforce_citations(base_state(answer=answer, graded_chunks=chunks))
+
+        assert result["answer"] == answer
+
+    async def test_bare_numeric_citation_is_recognized(self):
+        # The model sometimes cites as a bare "[N]" without repeating the
+        # arxiv id — still a legitimate reference back to the numbered
+        # source list in the prompt, not an uncited claim.
+        nodes = AgentNodes(None, None, None, None)
+        chunks = [{"arxiv_id": "2607.00001v1", "chunk_text": "x"}]
+        answer = "Transformers use self-attention [1]."
 
         result = await nodes.enforce_citations(base_state(answer=answer, graded_chunks=chunks))
 

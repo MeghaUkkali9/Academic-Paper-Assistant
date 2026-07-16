@@ -12,6 +12,7 @@ def base_state(**overrides) -> dict:
         "top_k": 3,
         "categories": None,
         "model": "gpt-4o-mini",
+        "use_hybrid": True,
         "retrieved_chunks": [],
         "graded_chunks": [],
         "sources": [],
