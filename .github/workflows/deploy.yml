@@ -1,8 +1,11 @@
 name: Deploy
 
-# Ships app code to the already-running EC2 instance. Does not touch
-# infrastructure — see infra.yml for that. Excludes infra/** so a Terraform-only
-# change doesn't also trigger an app redeploy.
+# Ships app code to the already-running EC2 instance via AWS Systems Manager
+# (not SSH — GitHub Actions runner IPs are far too numerous/volatile to allow
+# through the security group, so the instance pulls commands over SSM's
+# outbound-only channel instead). Does not touch infrastructure — see
+# infra.yml for that. Excludes infra/** so a Terraform-only change doesn't
+# also trigger an app redeploy.
 on:
   push:
     branches: [main]
@@ -23,26 +26,50 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ap-southeast-2
 
-      - name: Look up instance public IP
+      - name: Look up instance ID and public IP
         id: instance
         run: |
-          IP=$(aws ec2 describe-instances \
+          INFO=$(aws ec2 describe-instances \
             --filters "Name=tag:Name,Values=academic-paper-assistant" "Name=instance-state-name,Values=running" \
-            --query "Reservations[0].Instances[0].PublicIpAddress" --output text)
-          echo "ip=$IP" >> "$GITHUB_OUTPUT"
+            --query "Reservations[0].Instances[0].[InstanceId,PublicIpAddress]" --output text)
+          echo "id=$(echo "$INFO" | cut -f1)" >> "$GITHUB_OUTPUT"
+          echo "ip=$(echo "$INFO" | cut -f2)" >> "$GITHUB_OUTPUT"
 
-      - name: Deploy over SSH
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ steps.instance.outputs.ip }}
-          username: ubuntu
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script: |
-            set -e
-            cd ~/Academic-Paper-Assistant
-            git pull origin main
-            sudo docker compose up -d --build api
-            sudo systemctl restart gradio-app
+      - name: Deploy via SSM
+        run: |
+          COMMAND_ID=$(aws ssm send-command \
+            --instance-ids "${{ steps.instance.outputs.id }}" \
+            --document-name "AWS-RunShellScript" \
+            --comment "Deploy ${{ github.sha }}" \
+            --parameters 'commands=[
+              "set -e",
+              "cd /home/ubuntu/Academic-Paper-Assistant",
+              "sudo -u ubuntu git pull origin main",
+              "docker compose up -d --build api",
+              "systemctl restart gradio-app"
+            ]' \
+            --query "Command.CommandId" --output text)
+          echo "Command ID: $COMMAND_ID"
+
+          # Poll until the command reaches a terminal state.
+          for i in $(seq 1 30); do
+            STATUS=$(aws ssm get-command-invocation \
+              --command-id "$COMMAND_ID" \
+              --instance-id "${{ steps.instance.outputs.id }}" \
+              --query "Status" --output text 2>/dev/null || echo "Pending")
+            echo "Status: $STATUS"
+            if [ "$STATUS" = "Success" ] || [ "$STATUS" = "Failed" ] || [ "$STATUS" = "Cancelled" ] || [ "$STATUS" = "TimedOut" ]; then
+              break
+            fi
+            sleep 10
+          done
+
+          aws ssm get-command-invocation \
+            --command-id "$COMMAND_ID" \
+            --instance-id "${{ steps.instance.outputs.id }}" \
+            --query "{Status:Status,StdOut:StandardOutputContent,StdErr:StandardErrorContent}" --output json
+
+          [ "$STATUS" = "Success" ] || (echo "Deploy failed with status: $STATUS" && exit 1)
 
       - name: Health check
         run: |
