@@ -135,19 +135,19 @@ class DocumentChunker:
         sections: Union[Dict[str, str], str, list]
     ) -> Dict[str, str]:
         """Parse sections data into a dictionary."""
-        if isinstance(sections, dict):
-            return sections
-        
         if isinstance(sections, str):
             try:
                 sections = json.loads(sections)
             except json.JSONDecodeError:
                 logger.warning("Failed to parse sections JSON")
                 return {}
-        
+
+        if isinstance(sections, dict):
+            return sections
+
         if isinstance(sections, list):
             return self._list_to_sections_dict(sections)
-        
+
         return {}
 
     def _list_to_sections_dict(self, sections: list) -> Dict[str, str]:
