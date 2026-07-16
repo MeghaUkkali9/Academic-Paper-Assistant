@@ -1,7 +1,9 @@
 from typing import Annotated
 
 from fastapi import Depends, Request
+from langgraph.graph.state import CompiledStateGraph
 
+from src.config import Settings
 from src.services.embedding.client import EmbeddingClient
 from src.services.openai_llm.client import OpenAILLMClient
 from src.services.opensearch.client import OpenSearchClient
@@ -19,6 +21,14 @@ def get_embeddings_client(request: Request) -> EmbeddingClient:
     return request.app.state.embeddings_client
 
 
+def get_rag_agent(request: Request) -> CompiledStateGraph:
+    return request.app.state.rag_agent
+
+
+def get_app_settings(request: Request) -> Settings:
+    return request.app.state.settings
+
+
 OpenSearchDependency = Annotated[
     OpenSearchClient,
     Depends(get_opensearch_client),
@@ -32,4 +42,14 @@ EmbeddingsDependency = Annotated[
 LLMDependency = Annotated[
     OpenAILLMClient,
     Depends(get_llm_client),
+]
+
+AgentDependency = Annotated[
+    CompiledStateGraph,
+    Depends(get_rag_agent),
+]
+
+SettingsDependency = Annotated[
+    Settings,
+    Depends(get_app_settings),
 ]

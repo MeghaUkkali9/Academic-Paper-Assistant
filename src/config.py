@@ -121,6 +121,33 @@ class EmbeddingSettings(BaseConfigSettings):
     max_retries_on_rate_limit: int = 3
     retry_backoff_seconds: float = 20.0  # Fallback wait when Jina omits Retry-After
     
+class AgentSettings(BaseConfigSettings):
+    model_config = SettingsConfigDict(
+        env_file=[".env", str(ENV_FILE_PATH)],
+        env_prefix="AGENT__",
+        extra="ignore",
+        frozen=True,
+        case_sensitive=False,
+    )
+
+    max_retrieval_retries: int = 2
+    max_generation_retries: int = 1
+    recursion_limit: int = 25
+
+class LangfuseSettings(BaseConfigSettings):
+    model_config = SettingsConfigDict(
+        env_file=[".env", str(ENV_FILE_PATH)],
+        env_prefix="LANGFUSE__",
+        extra="ignore",
+        frozen=True,
+        case_sensitive=False,
+    )
+
+    secret_key: str = ""
+    public_key: str = ""
+    base_url: str = "https://cloud.langfuse.com"
+    enabled: bool = False
+
 class Settings(BaseConfigSettings):
     app_version: str = "0.1.0"
     debug: bool = True
@@ -144,7 +171,9 @@ class Settings(BaseConfigSettings):
     pdf_parser: PDFParserSettings = Field(default_factory=PDFParserSettings)
     chunking: ChunkingSettings = Field(default_factory=ChunkingSettings)
     opensearch: OpenSearchSettings = Field(default_factory=OpenSearchSettings)
-  
+    agent: AgentSettings = Field(default_factory=AgentSettings)
+    langfuse: LangfuseSettings = Field(default_factory=LangfuseSettings)
+
     @field_validator("postgres_database_url")
     @classmethod
     def validate_database_url(cls, v: str) -> str:

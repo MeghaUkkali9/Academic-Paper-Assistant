@@ -6,6 +6,7 @@ from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
 from src.dependencies import EmbeddingsDependency, LLMDependency, OpenSearchDependency
 from src.schemas.api.ask import AskRequest, AskResponse
+from src.services.opensearch.utils import build_pdf_sources
 
 logger = logging.getLogger(__name__)
 stream_router = APIRouter(tags=["stream"])
@@ -41,25 +42,14 @@ async def _prepare_chunks_and_sources(
         min_score=0.0,
     )
     
-    chunks = []
-    sources_set = set() 
-
-    for hit in search_results.get("hits", []):
-        arxiv_id = hit.get("arxiv_id", "")
-
-        chunk_data = {
-            "arxiv_id": arxiv_id,
+    chunks = [
+        {
+            "arxiv_id": hit.get("arxiv_id", ""),
             "chunk_text": hit.get("chunk_text", hit.get("abstract", "")),
         }
-        chunks.append(chunk_data)
-
-        # Build PDF URL from arxiv_id for sources (automatically deduplicates)
-        if arxiv_id:
-            arxiv_id_clean = arxiv_id.split("v")[0] if "v" in arxiv_id else arxiv_id
-            pdf_url = f"https://arxiv.org/pdf/{arxiv_id_clean}.pdf"
-            sources_set.add(pdf_url)
-
-    sources = list(sources_set)
+        for hit in search_results.get("hits", [])
+    ]
+    sources = build_pdf_sources(chunks)
 
     return chunks, sources, search_mode
 
