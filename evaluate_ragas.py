@@ -1,12 +1,15 @@
 """Evaluate the RAG pipeline with RAGAS (faithfulness, answer relevancy, context precision).
 
 Usage:
-    python3 evaluate_ragas.py
+    python3 evaluate_ragas.py                # hybrid search (default)
+    python3 evaluate_ragas.py --mode bm25     # BM25-only, for comparison
 
 On first run, generates one eval question per indexed paper and saves them to
-evaluation_questions.json for reuse/review. Delete that file to regenerate.
-Per-question results are written to evaluation_results.csv.
+evaluation_questions.json for reuse/review (shared across modes, so the
+comparison uses identical questions). Delete that file to regenerate.
+Per-question results are written to evaluation_results_<mode>.csv.
 """
+import argparse
 import asyncio
 import json
 import logging
@@ -34,7 +37,6 @@ logging.basicConfig(level=logging.WARNING)
 logger = logging.getLogger(__name__)
 
 QUESTIONS_PATH = Path(__file__).parent / "evaluation_questions.json"
-RESULTS_PATH = Path(__file__).parent / "evaluation_results.csv"
 TOP_K = 3
 
 
@@ -69,13 +71,15 @@ async def generate_questions(openai_client: AsyncOpenAI, papers: list[dict]) -> 
     return questions
 
 
-async def run_rag(question: str, opensearch_client, embedding_client, llm_client) -> tuple[str, list[str]]:
-    query_embedding = await embedding_client.embed_query(question)
+async def run_rag(
+    question: str, opensearch_client, embedding_client, llm_client, use_hybrid: bool
+) -> tuple[str, list[str]]:
+    query_embedding = await embedding_client.embed_query(question) if use_hybrid else None
     results = opensearch_client.search(
         query=question,
         query_embedding=query_embedding,
         size=TOP_K,
-        use_hybrid=True,
+        use_hybrid=use_hybrid,
     )
     chunks = [
         {"arxiv_id": hit.get("arxiv_id", ""), "chunk_text": hit.get("chunk_text", "")}
@@ -90,6 +94,12 @@ async def run_rag(question: str, opensearch_client, embedding_client, llm_client
 
 
 async def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--mode", choices=["hybrid", "bm25"], default="hybrid")
+    args = parser.parse_args()
+    use_hybrid = args.mode == "hybrid"
+    results_path = Path(__file__).parent / f"evaluation_results_{args.mode}.csv"
+
     settings = get_settings()
     database = create_database()
     opensearch_client = get_opensearch_client()
@@ -115,7 +125,7 @@ async def main():
     for q in questions:
         question = q["question"]
         print(f"Running RAG for: {question}")
-        answer, contexts = await run_rag(question, opensearch_client, embedding_client, llm_client)
+        answer, contexts = await run_rag(question, opensearch_client, embedding_client, llm_client, use_hybrid)
         samples.append(
             {
                 "user_input": question,
@@ -136,12 +146,12 @@ async def main():
         embeddings=evaluator_embeddings,
     )
 
-    print("\n=== RAGAS Scores (averaged) ===")
+    print(f"\n=== RAGAS Scores (averaged, mode={args.mode}) ===")
     print(result)
 
     df = result.to_pandas()
-    df.to_csv(RESULTS_PATH, index=False)
-    print(f"\nPer-question results saved to {RESULTS_PATH}")
+    df.to_csv(results_path, index=False)
+    print(f"\nPer-question results saved to {results_path}")
 
 
 if __name__ == "__main__":

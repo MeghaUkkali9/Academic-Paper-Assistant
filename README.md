@@ -177,22 +177,37 @@ We use [RAGAS](https://docs.ragas.io/) to measure answer quality, independent of
 
 For every indexed paper, one factual question is generated from its abstract, run through the real retrieval + generation pipeline, and scored (reference-free, no hand-written ground truth needed):
 
-| Metric | Score | What it measures |
+| Metric | Score (hybrid) | What it measures |
 |---|---|---|
-| Faithfulness | 0.98 | Is the answer grounded in the retrieved chunks (not hallucinated)? |
+| Faithfulness | 0.99 | Is the answer grounded in the retrieved chunks (not hallucinated)? |
 | Answer Relevancy | 0.91 | Does the answer actually address the question asked? |
 | Context Precision | 1.00 | Are the retrieved chunks relevant to the question? |
 
-*(Last run: 17 questions, one per indexed paper — see `evaluation_results.csv` for the per-question breakdown.)*
+*(Last run: 17 questions, one per indexed paper — see `evaluation_results_hybrid.csv` for the per-question breakdown.)*
+
+### Ablation: BM25-only vs. hybrid search
+
+Same 17 questions, same generation step — only the retrieval mode changes:
+
+| Metric | BM25-only | Hybrid (BM25 + vector, RRF) |
+|---|---|---|
+| Faithfulness | 0.9853 | 0.9926 |
+| Answer Relevancy | 0.9115 | 0.9090 |
+| Context Precision | 1.0000 | 1.0000 |
+
+The aggregate scores are a near-wash — within noise of each other. But that's not the interesting part: **14 of the 17 questions retrieved a completely different set of chunks** between the two modes, despite landing on statistically indistinguishable downstream scores. The likely reason: these eval questions are generated directly from each paper's abstract, so they share vocabulary with the source text — exactly the case where keyword search (BM25) is already strong, narrowing hybrid's usual semantic-gap advantage. This corpus is also small (17 papers), so there's less room for BM25 to get misled by unrelated keyword collisions across documents.
+
+Takeaway: for *this* eval set, hybrid search changes *what* gets retrieved more than it changes *answer quality* — a good reminder that retrieval differences don't automatically show up in downstream metrics, and that an eval set built from paraphrased (not abstract-derived) questions would likely tell a different story.
 
 ### Run it yourself
 
 ```bash
-python3 evaluate_ragas.py
+python3 evaluate_ragas.py                # hybrid search (default)
+python3 evaluate_ragas.py --mode bm25     # BM25-only, for comparison
 ```
 
-- First run generates `evaluation_questions.json` (one question per indexed paper) and caches it — delete the file to regenerate after indexing new papers.
-- Per-question scores are written to `evaluation_results.csv`.
+- First run generates `evaluation_questions.json` (one question per indexed paper) and caches it — shared across both modes so the comparison uses identical questions. Delete the file to regenerate after indexing new papers.
+- Per-question scores are written to `evaluation_results_<mode>.csv`.
 
 ## To access Arxiv API:
 https://info.arxiv.org/help/api/tou.html
