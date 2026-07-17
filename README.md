@@ -23,7 +23,7 @@
 7. OpenSearch - Search engine — stores and searches papers(BM25 + vector) 
 8. OpenSearch Dashboards - Visual UI - browse what is in OpenSearch
 
-## Architechture
+## Architecture
 ArXiv Papers
 ↓
 ETL Pipeline (Airflow)
@@ -33,7 +33,7 @@ PostgreSQL (metadata) + OpenSearch (vectors)
 ### Retrieval Pipeline :
   Query -> Embedding Model -> BM25 + Dense Vector Search -> Reciprocal Rank Fusion(RRF) -> Reranker(BGE or Cohere or cross encoder) -> Top K results
 
-### Generation Piplene:
+### Generation Pipeline:
   Top K results from retrieval pipline -> Context Window → Prompt → LLM → Response
 
 ![System Architecture](/static/retrival_pipeline.png)
