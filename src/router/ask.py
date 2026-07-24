@@ -4,7 +4,7 @@ import time
 
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
-from src.dependencies import EmbeddingsDependency, LLMDependency, OpenSearchDependency
+from src.dependencies import CacheDependency, EmbeddingsDependency, LLMDependency, OpenSearchDependency
 from src.schemas.api.ask import AskRequest, AskResponse
 from src.services.opensearch.utils import build_pdf_sources
 
@@ -53,19 +53,47 @@ async def _prepare_chunks_and_sources(
 
     return chunks, sources, search_mode
 
+
+def _build_cache_key(cache_client, namespace: str, request: AskRequest) -> str:
+    return cache_client.build_key(
+        namespace,
+        query=request.query.strip().lower(),
+        top_k=request.top_k,
+        use_hybrid=request.use_hybrid,
+        model=request.model,
+        categories=sorted(request.categories) if request.categories else None,
+    )
+
 @stream_router.post("/stream")
 async def ask_question_stream(
     request: AskRequest,
     opensearch_client: OpenSearchDependency,
     embeddings_service: EmbeddingsDependency,
-    llm_client: LLMDependency
+    llm_client: LLMDependency,
+    cache_client: CacheDependency,
 ) -> StreamingResponse:
-    """Clean streaming RAG endpoint (no cache, no tracing)."""
+    """Streaming RAG endpoint (no tracing) with a Redis/Upstash cache for repeat questions."""
+
+    cache_key = _build_cache_key(cache_client, "stream", request)
 
     async def generate_stream():
         start_time = time.time()
 
         try:
+            cached = await cache_client.get(cache_key)
+            if cached:
+                logger.info(f"Cache hit for query: '{request.query}'")
+                metadata_response = {
+                    "sources": cached["sources"],
+                    "chunks_used": cached["chunks_used"],
+                    "search_mode": cached["search_mode"],
+                    "cached": True,
+                }
+                yield f"data: {json.dumps(metadata_response)}\n\n"
+                yield f"data: {json.dumps({'chunk': cached['answer']})}\n\n"
+                yield f"data: {json.dumps({'answer': cached['answer'], 'done': True})}\n\n"
+                return
+
             chunks, sources, _ = await _prepare_chunks_and_sources(
                 request, opensearch_client, embeddings_service
             )
@@ -75,7 +103,12 @@ async def ask_question_stream(
                 return
 
             search_mode = "bm25" if not request.use_hybrid else "hybrid"
-            metadata_response = {"sources": sources, "chunks_used": len(chunks), "search_mode": search_mode}
+            metadata_response = {
+                "sources": sources,
+                "chunks_used": len(chunks),
+                "search_mode": search_mode,
+                "cached": False,
+            }
             yield f"data: {json.dumps(metadata_response)}\n\n"
 
             from src.services.openai_llm.prompts import RAGPromptBuilder
@@ -85,8 +118,8 @@ async def ask_question_stream(
 
             full_response = ""
             async for chunk in llm_client.generate_rag_answer_stream(
-                query=request.query, 
-                chunks=chunks, 
+                query=request.query,
+                chunks=chunks,
                 model=request.model
             ):
                 if chunk.get("response"):
@@ -97,6 +130,14 @@ async def ask_question_stream(
                 if chunk.get("done", False):
                     yield f"data: {json.dumps({'answer': full_response, 'done': True})}\n\n"
                     break
+
+            if full_response:
+                await cache_client.set(cache_key, {
+                    "answer": full_response,
+                    "sources": sources,
+                    "chunks_used": len(chunks),
+                    "search_mode": search_mode,
+                })
 
             logger.info(f"Streaming request completed in {time.time() - start_time:.2f}s")
 

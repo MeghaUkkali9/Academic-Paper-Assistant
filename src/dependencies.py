@@ -4,6 +4,7 @@ from fastapi import Depends, Request
 from langgraph.graph.state import CompiledStateGraph
 
 from src.config import Settings
+from src.services.cache.client import CacheClient
 from src.services.embedding.client import EmbeddingClient
 from src.services.openai_llm.client import OpenAILLMClient
 from src.services.opensearch.client import OpenSearchClient
@@ -11,6 +12,10 @@ from src.services.opensearch.client import OpenSearchClient
 
 def get_llm_client(request: Request) -> OpenAILLMClient:
     return request.app.state.llm_client
+
+
+def get_cache_client(request: Request) -> CacheClient:
+    return request.app.state.cache_client
 
 
 def get_opensearch_client(request: Request) -> OpenSearchClient:
@@ -52,4 +57,9 @@ AgentDependency = Annotated[
 SettingsDependency = Annotated[
     Settings,
     Depends(get_app_settings),
+]
+
+CacheDependency = Annotated[
+    CacheClient,
+    Depends(get_cache_client),
 ]

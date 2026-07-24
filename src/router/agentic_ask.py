@@ -2,7 +2,7 @@ import logging
 
 from fastapi import APIRouter, HTTPException
 
-from src.dependencies import AgentDependency, SettingsDependency
+from src.dependencies import AgentDependency, CacheDependency, SettingsDependency
 from src.schemas.api.agentic_ask import AgenticAskRequest, AgenticAskResponse
 from src.services.agent.state import GraphState
 from src.services.tracing.factory import get_langfuse_handler
@@ -16,9 +16,26 @@ async def ask_question_agentic(
     request: AgenticAskRequest,
     rag_agent: AgentDependency,
     settings: SettingsDependency,
+    cache_client: CacheDependency,
 ) -> AgenticAskResponse:
     """Agentic RAG: query routing, corrective retrieval with retry, groundedness
-    checking, and citation enforcement — see src/services/agent/graph.py."""
+    checking, and citation enforcement — see src/services/agent/graph.py.
+    Grounded, guardrail-free answers are cached in Redis/Upstash for repeat questions."""
+
+    cache_key = cache_client.build_key(
+        "agentic",
+        query=request.query.strip().lower(),
+        top_k=request.top_k,
+        use_hybrid=request.use_hybrid,
+        model=request.model,
+        categories=sorted(request.categories) if request.categories else None,
+    )
+
+    cached = await cache_client.get(cache_key)
+    if cached:
+        logger.info(f"Cache hit for agentic query: '{request.query}'")
+        return AgenticAskResponse(**cached, cached=True)
+
     initial_state: GraphState = {
         "query": request.query,
         "original_query": request.query,
@@ -50,7 +67,7 @@ async def ask_question_agentic(
         logger.exception("Agentic RAG graph failed")
         raise HTTPException(status_code=500, detail=str(e))
 
-    return AgenticAskResponse(
+    response = AgenticAskResponse(
         query=request.query,
         answer=final_state["answer"],
         sources=final_state["sources"],
@@ -61,3 +78,8 @@ async def ask_question_agentic(
         grounded=final_state["is_grounded"],
         guardrail_triggered=final_state["guardrail_reason"],
     )
+
+    if response.grounded and not response.guardrail_triggered:
+        await cache_client.set(cache_key, response.model_dump(exclude={"cached"}))
+
+    return response

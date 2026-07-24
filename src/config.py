@@ -134,6 +134,17 @@ class AgentSettings(BaseConfigSettings):
     max_generation_retries: int = 1
     recursion_limit: int = 25
 
+class RedisSettings(BaseConfigSettings):
+    model_config = SettingsConfigDict(
+        env_file=[".env", str(ENV_FILE_PATH)],
+        env_prefix="REDIS__",
+        extra="ignore",
+        frozen=True,
+        case_sensitive=False,
+    )
+
+    ttl_hours: int = 6
+
 class LangfuseSettings(BaseConfigSettings):
     model_config = SettingsConfigDict(
         env_file=[".env", str(ENV_FILE_PATH)],
@@ -166,6 +177,8 @@ class Settings(BaseConfigSettings):
     # LLM provider: "openai" or "bedrock"
     provider: str = "openai"
 
+    redis_url: str = ""
+
     embedding: EmbeddingSettings = Field(default_factory = EmbeddingSettings)
     arxiv: ArxivSettings = Field(default_factory=ArxivSettings)
     pdf_parser: PDFParserSettings = Field(default_factory=PDFParserSettings)
@@ -173,6 +186,7 @@ class Settings(BaseConfigSettings):
     opensearch: OpenSearchSettings = Field(default_factory=OpenSearchSettings)
     agent: AgentSettings = Field(default_factory=AgentSettings)
     langfuse: LangfuseSettings = Field(default_factory=LangfuseSettings)
+    redis: RedisSettings = Field(default_factory=RedisSettings)
 
     @field_validator("postgres_database_url")
     @classmethod

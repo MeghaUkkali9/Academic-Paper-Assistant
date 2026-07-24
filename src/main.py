@@ -10,6 +10,7 @@ from src.router.user import user_router
 from src.config import get_settings
 from src.database.factory import create_database
 from src.services.agent.factory import create_rag_agent
+from src.services.cache.factory import get_cache_client
 from src.services.embedding.factory import get_embedding_client
 from src.services.openai_llm.factory import make_openai_llm_client
 from src.services.opensearch.factory import get_opensearch_client
@@ -40,6 +41,7 @@ async def lifespan(app: FastAPI):
     app.state.llm_client = make_openai_llm_client()
     app.state.embeddings_client = get_embedding_client()
     app.state.opensearch_client = get_opensearch_client()
+    app.state.cache_client = get_cache_client(settings)
 
     init_langfuse(settings)
     app.state.rag_agent = create_rag_agent(
@@ -51,6 +53,7 @@ async def lifespan(app: FastAPI):
     yield
 
     # Cleanup resources on shutdown
+    await app.state.cache_client.aclose()
     database.dispose()
     logger.info("=== API shutdown complete ===")
 

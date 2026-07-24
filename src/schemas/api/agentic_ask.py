@@ -37,6 +37,7 @@ class AgenticAskResponse(BaseModel):
     chunks_graded_relevant: int = Field(..., description="Chunks the grading step judged relevant")
     grounded: bool = Field(..., description="Whether the answer passed the groundedness check")
     guardrail_triggered: Optional[str] = Field(None, description="Reason a guardrail fired, if any")
+    cached: bool = Field(False, description="Whether the answer was served from the Redis/Upstash cache")
 
     class Config:
         json_schema_extra = {
@@ -50,5 +51,6 @@ class AgenticAskResponse(BaseModel):
                 "chunks_graded_relevant": 3,
                 "grounded": True,
                 "guardrail_triggered": None,
+                "cached": False,
             }
         }

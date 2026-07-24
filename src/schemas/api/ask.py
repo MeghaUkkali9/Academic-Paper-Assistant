@@ -32,6 +32,7 @@ class AskResponse(BaseModel):
     sources: List[str] = Field(...)
     chunks_used: int = Field(...)
     search_mode: str = Field(...)
+    cached: bool = Field(False, description="Whether the answer was served from the Redis/Upstash cache")
 
     class Config:
         json_schema_extra = {
@@ -41,5 +42,6 @@ class AskResponse(BaseModel):
                 "sources": ["https://arxiv.org/pdf/1706.03762.pdf", "https://arxiv.org/pdf/1810.04805.pdf"],
                 "chunks_used": 3,
                 "search_mode": "hybrid",
+                "cached": False,
             }
         }
