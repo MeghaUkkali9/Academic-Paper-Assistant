@@ -19,7 +19,7 @@ variable "root_volume_size" {
 variable "my_ip_cidr" {
   description = "CIDR allowed to reach SSH and the admin-only ports (OpenSearch, Dashboards, Airflow)"
   type        = string
-  default     = "152.57.124.219/32"
+  default     = "157.50.173.197/32"
 }
 
 variable "vpc_cidr" {
